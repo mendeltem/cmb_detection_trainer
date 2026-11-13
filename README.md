@@ -163,7 +163,10 @@ material and are shared under the same licence, **CC BY-NC-SA 4.0**
 **share adaptations under the same licence (SA)**. Changes made: cropping to the non-zero part of the image,
 grey window, conversion of every axial slice to an 8-bit JPEG picture, microbleeds counted as 26-connected
 clusters, detections of an algorithm added. The same credit and licence are shown in the footer of the page.
-The rest of this repository (page and build scripts) is shared under the same licence.
+**Code licence:** the code of this repository (`index.html` and the build scripts `build/*.py`, `build/*.mjs`) is under the
+**MIT licence** (`LICENSE`): free to use, change and share, also commercially, with the copyright notice. The MIT licence does
+not cover the data: everything derived from the scans (`data/`, `build/screenshots/`, the case tables and JSON files in `build/`)
+stays under CC BY-NC-SA 4.0 (`data/LICENSE.md`).
 
 ## Folder layout
 
