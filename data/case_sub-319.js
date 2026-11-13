@@ -1,0 +1,3 @@
+// Made by build/01_prepare_cases.py - do not edit by hand. Derived from VALDO 2021 Task 2, CC BY-NC-SA 4.0.
+window.CMB_CASES = window.CMB_CASES || {};
+window.CMB_CASES["sub-319"] = {"id":"sub-319","site":3,"width":146,"height":197,"n_slices":39,"voxel_mm":[1.0,1.0,3.0001],"crop":{"x0":53,"y0":36,"z0":0,"full":[256,256,39]},"nifti_axcodes":"LAS","tolerance":{"inplane_mm":2.0,"slices":1},"clusters":[{"id":1,"n_voxels":10,"volume_mm3":30.0,"diameter_mm":3.86,"size_class":"2-5","centroid":[76.5,132.2,2.0],"bbox":[75,131,2,78,133,2],"voxels":[76,131,2,77,131,2,75,132,2,76,132,2,77,132,2,78,132,2,75,133,2,76,133,2,77,133,2,78,133,2]}],"algo":[[76,132,2],[55,84,14]],"algo_info":[[0.792,29.75],[0.435,66.0]],"img":"data/img/sub-319/"};

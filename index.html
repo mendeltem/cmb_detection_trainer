@@ -1,0 +1,1739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CMB Detection Trainer</title>
+<style>
+  :root{
+    --bg:#14181d; --panel:#1c2229; --panel2:#252d37; --line:#34404d;
+    --ink:#e8ecf1; --muted:#9dabb9; --accent:#6db3ee; --accent-ink:#08131d;
+    --own:#ffb000; --agree:#00d68f; --missed:#4da3ff; --extra:#ff5a36; --dup:#aaaab4;
+    --warn:#ffcf70; --late:#ff5d5d;
+  }
+  *{box-sizing:border-box}
+  [hidden]{display:none !important}
+  html,body{margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);
+       font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+       font-size:15px;line-height:1.45}
+  a{color:var(--accent)}
+  h1{font-size:19px;margin:0;font-weight:700;letter-spacing:.01em}
+  h2{font-size:16px;margin:0 0 6px}
+  h3{font-size:12px;margin:0 0 6px;color:var(--muted);font-weight:600;
+     text-transform:uppercase;letter-spacing:.08em}
+  p{margin:0 0 8px}
+  button{-webkit-tap-highlight-color:transparent;font:inherit;color:var(--ink);background:var(--panel2);border:1px solid var(--line);
+         border-radius:8px;padding:7px 11px;cursor:pointer;min-height:36px}
+  button:hover:not(:disabled){border-color:var(--accent)}
+  button:focus-visible,input:focus-visible,summary:focus-visible,th:focus-visible,tr:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  button.on{background:rgba(109,179,238,.20);border-color:var(--accent)}
+  button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:700}
+  button.primary:hover:not(:disabled){filter:brightness(1.08)}
+  button.big{width:100%;padding:11px 12px;font-size:16px}
+  button.huge{width:100%;padding:14px 12px;font-size:19px}
+  button.quiet{background:transparent}
+  button.small{min-height:28px;padding:2px 8px;font-size:13px}
+  input[type=range]{width:100%;accent-color:var(--accent);margin:2px 0 0;min-height:22px}
+  .wrap{max-width:1500px;margin:0 auto;padding:0 14px}
+
+  /* ---- header ---- */
+  header.top{border-bottom:1px solid var(--line);background:var(--panel)}
+  header.top .wrap{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;padding-top:9px;padding-bottom:9px}
+  .brand .sub{font-size:12.5px;color:var(--muted)}
+  .spacer{flex:1}
+  .chip{font-size:13px;color:var(--muted);border:1px solid var(--line);border-radius:8px;padding:5px 10px;
+        background:var(--panel2);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .chip b{color:var(--ink)}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .seg button{border:0;border-radius:0;background:transparent;min-height:34px;padding:6px 10px;font-size:13.5px}
+  .seg button + button{border-left:1px solid var(--line)}
+  .seg button.on{background:rgba(109,179,238,.22)}
+
+  /* ---- intro ---- */
+  details.intro{margin:10px 0 0;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:6px 14px}
+  details.intro summary{cursor:pointer;font-weight:700;padding:2px 0}
+  .introgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px 28px;margin-top:6px}
+  .introgrid ol,.introgrid ul{margin:0 0 6px;padding-left:20px}
+  .introgrid li{margin:0 0 3px}
+  .introgrid p{margin:0 0 4px}
+  .no{color:var(--warn)}
+
+  /* ---- workspace ---- */
+  main.work{display:grid;grid-template-columns:214px minmax(0,1fr) 330px;gap:12px;margin:10px 0 18px;align-items:start}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px}
+  .tools{display:flex;flex-direction:column;gap:12px}
+  .tools .grp{display:flex;flex-direction:column;gap:6px}
+  .row{display:flex;gap:6px;flex-wrap:wrap}
+  .row > button{flex:1 1 0;min-width:0;padding-left:6px;padding-right:6px}
+  label.sl{display:block;font-size:13px;color:var(--muted)}
+  label.sl b{color:var(--ink);font-weight:600;float:right;font-variant-numeric:tabular-nums}
+  label.chk{display:flex;align-items:center;gap:7px;font-size:13.5px;color:var(--muted);cursor:pointer}
+  kbd{font:11px ui-monospace,Menlo,Consolas,monospace;border:1px solid var(--line);border-radius:4px;
+      padding:0 4px;color:var(--muted);margin-left:3px}
+  .keys{font-size:12px;color:var(--muted);line-height:1.6}
+  .tools .grp.keys{display:block}
+
+  .stage{min-width:0}
+  .view{position:relative;height:clamp(340px,calc(100vh - 250px),820px);background:#000;
+        border:1px solid var(--line);border-radius:10px;overflow:hidden;touch-action:none;
+        user-select:none;-webkit-user-select:none}
+  .view canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+  #cvImg{pointer-events:none}
+  #cv{cursor:crosshair}
+  .view.panning #cv{cursor:grabbing}
+  .view.locked #cv{cursor:default}
+  .badge{position:absolute;font-size:12.5px;padding:3px 8px;border-radius:6px;pointer-events:none;
+         background:rgba(10,14,18,.72);color:var(--ink)}
+  #sliceLabel{left:8px;top:8px}
+  #lockBadge{right:8px;top:8px;border:1px solid var(--agree);color:var(--agree)}
+  #loadBadge{left:50%;top:50%;transform:translate(-50%,-50%);font-size:15px;padding:8px 14px;border:1px solid var(--accent)}
+  .side{position:absolute;top:50%;transform:translateY(-50%);font-weight:700;font-size:13px;
+        color:#ffe9a8;background:rgba(10,14,18,.6);padding:2px 6px;border-radius:5px;pointer-events:none}
+  #sideR{left:6px} #sideL{right:6px}
+  #sideA{position:absolute;left:50%;top:6px;transform:translateX(-50%)}
+  #orientNote{left:8px;bottom:8px;color:var(--muted);font-size:12px}
+  .quick,.touchhint{display:none}
+
+  /* slice bar and marker list under the picture */
+  .slicebar{display:flex;align-items:center;gap:8px;margin-top:8px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:6px 10px}
+  .slicebar input[type=range]{flex:1 1 auto;margin:0;min-width:0;width:auto}
+  .slicebar .val{font-variant-numeric:tabular-nums;font-size:13.5px;white-space:nowrap;min-width:6.5em;text-align:right}
+  .marklist{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px;font-size:13px;color:var(--muted)}
+  .marklist button{min-height:28px;padding:2px 8px;font-size:12.5px;font-variant-numeric:tabular-nums}
+  .marklist button.cur{border-color:var(--own);color:var(--own)}
+
+  /* ---- score panel ---- */
+  .rightcol{display:flex;flex-direction:column;gap:12px;min-width:0}
+  .meta{font-size:12.5px;color:var(--muted)}
+  .hint{font-size:12.5px;color:var(--muted)}
+  .bigcount{font-size:15px;margin:6px 0 10px}
+  .bigcount b{font-size:22px;font-variant-numeric:tabular-nums}
+  .f1box{text-align:center;margin:8px 0 8px;padding:8px 10px;border-radius:10px;background:var(--panel2)}
+  .f1box .lab{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+  .f1box .val{font-size:50px;font-weight:800;line-height:1.05;font-variant-numeric:tabular-nums}
+  .f1box .scope{font-size:12.5px;color:var(--warn)}
+  .verdict{border:1px solid var(--line);border-left-width:5px;border-radius:10px;padding:8px 10px;margin:0 0 10px;background:var(--panel2)}
+  .verdict .head{font-size:17px;font-weight:800;line-height:1.25}
+  .verdict .nums{font-size:13.5px;color:var(--muted);font-variant-numeric:tabular-nums;margin-top:2px}
+  .verdict .nums b{color:var(--ink)}
+  .verdict.win{border-color:var(--agree)}
+  .verdict.lose{border-color:var(--warn)}
+  .verdict.tie{border-color:var(--accent)}
+  dl.kv{display:grid;grid-template-columns:1fr auto;gap:3px 10px;margin:0 0 10px;font-size:14px}
+  dl.kv dt{color:var(--muted)} dl.kv dt small{display:block;font-size:11.5px}
+  dl.kv dd{margin:0;text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+  .formula{font:13px ui-monospace,Menlo,Consolas,monospace;background:#11161b;border:1px solid var(--line);
+           border-radius:8px;padding:8px;margin:0 0 10px;overflow-wrap:anywhere}
+  .formula b{color:var(--ink)}
+  ul.legend{list-style:none;margin:0 0 10px;padding:0;font-size:13.5px}
+  ul.legend li{display:grid;grid-template-columns:16px 1fr auto;gap:8px;align-items:center;margin:0 0 4px}
+  ul.legend i{width:14px;height:14px;border-radius:3px;display:inline-block}
+  ul.legend i.ring{border:2.5px solid;border-radius:50%;background:transparent}
+  ul.legend i.sq{border:2.5px solid;border-radius:1px;background:transparent}
+  ul.legend small{color:var(--muted)}
+  ul.legend b{font-variant-numeric:tabular-nums}
+  .stack{display:flex;flex-direction:column;gap:8px}
+  table{border-collapse:collapse;width:100%;font-size:14px}
+  th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+  th{color:var(--muted);font-weight:600;font-size:12.5px;vertical-align:bottom}
+  th:first-child,td:first-child{text-align:left}
+  table.cmp{margin:0 0 10px}
+  table.cmp td,table.cmp th{padding:3px 6px}
+  table.cmp tr.f1row td{font-weight:800}
+  table.cmp tr.sep td{border-top:2px solid var(--line);color:var(--muted);font-size:12px;padding-top:6px}
+  table.list{font-size:13px;margin:0 0 10px}
+  table.list td,table.list th{padding:3px 5px}
+  table.list button{min-height:26px;padding:1px 7px;font-size:12px}
+  .yes{color:var(--agree);font-weight:700} .nope{color:var(--missed);font-weight:700}
+  .listwrap{max-height:260px;overflow:auto;margin:0 0 10px;border:1px solid var(--line);border-radius:8px}
+  .listwrap table{margin:0}
+
+  /* ---- my progress ---- */
+  .hist{position:relative;height:84px;margin:16px 0 2px 26px;border-bottom:1px solid var(--line)}
+  .hist .grid{position:absolute;left:0;right:0;border-top:1px dashed rgba(157,171,185,.25);height:0}
+  .hist .ylab{position:absolute;left:-26px;width:22px;text-align:right;font-size:11px;line-height:14px;height:14px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .hist .cols{position:absolute;inset:0;display:flex;align-items:stretch;gap:2px}
+  .hist .col{position:relative;flex:1 1 0;max-width:18px;min-width:0;padding:0;border:0;border-radius:0;background:transparent;min-height:0;cursor:pointer}
+  .hist .col:hover{background:rgba(157,171,185,.12)}
+  .hist .col.sel{background:rgba(109,179,238,.18)}
+  .hist .col .fill{position:absolute;left:0;right:0;bottom:0;background:var(--accent);border-radius:4px 4px 0 0;min-height:1px}
+  .hist .col.retry .fill{background:transparent;border:1.5px solid var(--accent);border-bottom:0}
+  .hist .col .tick{position:absolute;left:-1px;right:-1px;height:3px;background:var(--warn);border-radius:2px;transform:translateY(50%)}
+  .histkey{font-size:12px;color:var(--muted);margin:4px 0 6px;line-height:1.7}
+  .histkey i{display:inline-block;vertical-align:middle;margin:0 4px 0 0}
+  .histkey span{white-space:nowrap;margin-right:10px}
+  #histInfo{min-height:1.45em;font-size:12.5px;color:var(--ink);font-variant-numeric:tabular-nums}
+  .confirmbox{border:1px solid var(--late);border-radius:10px;padding:10px;margin-top:8px}
+  .confirmbox p{font-size:13.5px}
+
+  /* ---- patient list ---- */
+  .picker{position:fixed;inset:0;z-index:45;background:rgba(5,8,11,.80);display:flex;align-items:center;justify-content:center;padding:12px}
+  .pickerbox{background:var(--panel);border:1px solid var(--line);border-radius:12px;width:100%;max-width:980px;
+             max-height:100%;display:flex;flex-direction:column;padding:14px}
+  .pickerhead{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-bottom:8px}
+  .pickerhead h2{margin:0;font-size:18px}
+  .tablewrap{overflow:auto;min-height:0;border:1px solid var(--line);border-radius:8px}
+  #pickTable th{position:sticky;top:0;background:var(--panel2);cursor:pointer;user-select:none;-webkit-user-select:none;white-space:nowrap}
+  #pickTable th .arrow{display:inline-block;width:1em;color:var(--accent)}
+  #pickTable th .hs{display:none}
+  #pickTable tbody tr{cursor:pointer}
+  #pickTable tbody tr:hover{background:rgba(109,179,238,.10)}
+  #pickTable tbody tr.cur{background:rgba(109,179,238,.20)}
+  #pickTable td.scn{white-space:normal;color:var(--muted);font-size:13px;text-align:left}
+  #pickTable th.scn{text-align:left}
+  .hidden-val{color:var(--muted)}
+  .donemark{color:var(--agree);font-weight:700}
+
+  /* ---- tutorial ---- */
+  .tut{position:fixed;inset:0;z-index:50;background:rgba(6,8,12,.92);display:flex;align-items:center;justify-content:center;padding:16px}
+  .tutbox{background:#141821;border:1px solid #2a2f3a;border-radius:14px;max-width:1100px;width:100%;max-height:100%;overflow:auto;
+          padding:24px 28px;display:flex;gap:28px;flex-wrap:wrap;align-items:center}
+  .tutbox canvas{width:min(420px,100%);border-radius:10px;background:#000}
+  .tuttext{flex:1;min-width:260px;font-size:19px;line-height:1.5;color:#ece9e1}
+  .tutstep{color:#8d929a;font-size:15px;letter-spacing:.08em;text-transform:uppercase}
+  .tuttext h2{margin:.2em 0 .4em;font-size:28px}
+  .tuttext ul{padding-left:22px;margin:0 0 8px}
+  .tutbtns{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
+
+  /* ---- footer, dialog, toast ---- */
+  footer{border-top:1px solid var(--line);color:var(--muted);font-size:12.5px;padding:12px 0 26px}
+  footer p{margin:0 0 6px}
+  footer details summary{cursor:pointer;color:var(--ink)}
+  .modal{position:fixed;inset:0;background:rgba(5,8,11,.72);display:grid;place-items:center;z-index:60;padding:16px}
+  .modalbox{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;max-width:440px;width:100%}
+  .modalbox .row{justify-content:flex-end;margin-top:14px}
+  .modalbox .row button{flex:0 0 auto;padding:8px 14px}
+  #toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:var(--panel2);
+         border:1px solid var(--accent);border-radius:10px;padding:9px 14px;z-index:70;max-width:92vw;font-size:14px}
+  .error{margin:14px 0;padding:12px;border:1px solid var(--extra);border-radius:10px;color:#ffd2c7}
+  .error button{margin-top:8px}
+
+  /* ---- narrower screens: tools on top, score below ---- */
+  @media (max-width: 1100px){
+    main.work{grid-template-columns:minmax(0,1fr) 310px}
+    .tools{grid-column:1 / -1;flex-direction:row;flex-wrap:wrap;gap:10px 18px;align-items:flex-start}
+    .tools .grp{flex:1 1 170px;min-width:150px}
+    .tools .grp.keys{display:none}
+    .view{height:clamp(340px,calc(100vh - 320px),760px)}
+  }
+  @media (max-width: 820px){
+    main.work{grid-template-columns:minmax(0,1fr)}
+    .introgrid{grid-template-columns:1fr}
+    .view{height:min(72vh,110vw)}
+    #pickTable .wide{display:none}
+    .tutbox{padding:16px;gap:14px}
+    .tuttext{font-size:16px}
+    .tuttext h2{font-size:21px}
+    .tutbox canvas{width:min(250px,70%);margin:0 auto}
+  }
+  @media (max-width: 520px){
+    .wrap{padding:0 8px}
+    h1{font-size:17px}
+    .brand .sub{display:none}
+    .tools .grp{flex-basis:100%;min-width:0}
+    .f1box .val{font-size:44px}
+    .picker{padding:6px}
+    .pickerbox{padding:10px}
+    th,td{padding:6px 5px}
+    #pickTable{font-size:13px;table-layout:auto;width:100%}
+    #pickTable th{font-size:12px}
+    #pickTable th .hl{display:none}
+    #pickTable th .hs{display:inline}
+    #pickTable th .arrow{width:auto}
+    #pickTable th .arrow:empty{display:none}
+    #pickTable td:first-child{white-space:normal;overflow-wrap:anywhere}
+    .slicebar{padding:6px 6px;gap:6px}
+    .slicebar .val{min-width:0}
+    .slicebar .val .lab{display:none}
+  }
+
+  /* ---- phones and touch screens ----
+     The picture takes every touch (tap marks, one finger scrolls the slices, two fingers zoom and
+     move), so it must not fill the whole width: a column on its right holds the most used buttons
+     and a free margin. A finger that starts in this column scrolls the page as usual. */
+  @media (max-width: 820px), (hover: none) and (pointer: coarse){
+    .viewrow{display:flex;gap:6px;align-items:stretch}
+    .viewrow .view{flex:1 1 auto;min-width:0}
+    .quick{display:flex;flex-direction:column;gap:6px;flex:0 0 58px;width:58px}
+    .quick button{min-height:44px;padding:4px 2px;font-size:13px}
+    .quick button.attn{border-color:var(--warn);color:var(--warn);font-weight:700}
+    .scrollgrip{flex:1 1 0;min-height:56px;border:1px dashed var(--line);border-radius:8px;
+                display:flex;align-items:center;justify-content:center;color:var(--muted);
+                font-size:12px;letter-spacing:.06em;writing-mode:vertical-rl;user-select:none;-webkit-user-select:none;
+                background:repeating-linear-gradient(0deg,transparent 0 7px,rgba(157,171,185,.10) 7px 8px)}
+    .touchhint{display:block;margin:8px 0 0}
+  }
+  @media (max-width: 820px){
+    .stage{order:1}
+    .rightcol{order:2}
+    .tools{order:3}
+  }
+  @media (max-width: 1100px) and (max-height: 520px){
+    .stage{order:1}
+    .rightcol{order:2}
+    .tools{order:3}
+    .view{height:max(230px,calc(100vh - 70px))}
+  }
+</style>
+</head>
+<body>
+
+<header class="top"><div class="wrap">
+  <div class="brand">
+    <h1>CMB Detection Trainer</h1>
+    <div class="sub">Find cerebral microbleeds on T2*-weighted MRI, compare with the expert and with the algorithm</div>
+  </div>
+  <span class="spacer"></span>
+  <span class="chip" id="doneChip" title="Patients you have scored at least once"></span>
+  <button type="button" id="tutBtn" class="quiet">Tutorial</button>
+  <button type="button" id="pickBtn">Choose patient</button>
+</div></header>
+
+<div class="wrap">
+  <div id="fatal" class="error" hidden></div>
+
+  <details class="intro" id="intro">
+    <summary>How to</summary>
+    <div class="introgrid">
+      <div>
+        <ol>
+          <li><b>Scroll through all slices</b> (mouse wheel, arrow keys, the slider under the picture, or one finger up and down on a phone).</li>
+          <li><b>Click</b> (or tap) on every cerebral microbleed you see. A ring marks it. Click the ring again to remove it.</li>
+          <li>Press <b>Score</b>: you get precision, recall and F1 against the expert, your hits, false alarms and misses on the picture, and the result of the algorithm on the same scan.</li>
+          <li>Go on with <b>Next patient</b>, as long as you like. Some patients have <b>no microbleed at all</b>: then the right answer is no marker.</li>
+        </ol>
+      </div>
+      <div>
+        <p><b>What to mark:</b> a microbleed on T2*-weighted MRI is a small, round or oval, very dark spot, mostly 2 to 10 mm across, seen on only a few slices.</p>
+        <p class="no"><b>Lookalikes, do not mark:</b> vessels (dark too, but they go on over many slices or run as a line: scroll up and down before you click), calcifications (basal ganglia, choroid plexus, pineal gland), air and bone at the skull base, dark edges at the border of the brain.</p>
+        <p class="hint" id="orientText"></p>
+      </div>
+    </div>
+  </details>
+
+  <main class="work" id="work">
+    <aside class="tools card" aria-label="View tools">
+      <div class="grp">
+        <h3>View</h3>
+        <div class="row">
+          <button type="button" id="zoomOut" title="Zoom out (-)" aria-label="Zoom out">&minus;</button>
+          <button type="button" id="zoomFit" title="Fit the picture (0)">Fit</button>
+          <button type="button" id="zoomIn" title="Zoom in (+)" aria-label="Zoom in">+</button>
+        </div>
+        <label class="sl" for="bright">Brightness <b id="brightVal"></b></label>
+        <input type="range" id="bright" min="-100" max="100" step="1">
+        <label class="sl" for="contrast">Contrast <b id="contrastVal"></b></label>
+        <input type="range" id="contrast" min="-100" max="100" step="1">
+        <button type="button" id="resetGrey" class="quiet">Reset brightness / contrast</button>
+      </div>
+      <div class="grp">
+        <h3>Markers</h3>
+        <button type="button" id="toggleMarks" title="Hide or show the rings (H)">Hide markers</button>
+        <label class="chk"><input type="checkbox" id="fillRef"> Fill the expert's voxels (after scoring)</label>
+        <label class="chk"><input type="checkbox" id="smooth"> Smooth picture</label>
+      </div>
+      <div class="grp keys">
+        Wheel: slice. Ctrl + wheel or pinch: zoom. Drag: move the picture.
+        Keys: <kbd>&uarr;</kbd> <kbd>&darr;</kbd> or <kbd>&larr;</kbd> <kbd>&rarr;</kbd> slice,
+        <kbd>PgUp</kbd> <kbd>PgDn</kbd> 5 slices, <kbd>+</kbd> <kbd>-</kbd> <kbd>0</kbd> zoom, <kbd>H</kbd> hide markers.
+      </div>
+    </aside>
+
+    <section class="stage">
+      <div class="viewrow">
+        <div class="view" id="view">
+          <canvas id="cvImg" aria-hidden="true"></canvas>
+          <canvas id="cv" aria-label="MRI slice. Click to mark a microbleed."></canvas>
+          <span class="badge" id="sliceLabel"></span>
+          <span class="badge" id="lockBadge" hidden>Scored and locked</span>
+          <span class="side" id="sideR" title="Patient's right">R</span>
+          <span class="side" id="sideL" title="Patient's left">L</span>
+          <span class="side" id="sideA" title="Front of the head (anterior)">front</span>
+          <span class="badge" id="orientNote">Right side of the picture = patient's left</span>
+          <span class="badge" id="loadBadge" hidden>Loading patient ...</span>
+        </div>
+        <div class="quick" id="quickBar" aria-label="Quick tools next to the picture">
+          <button type="button" id="quickUp" title="Next slice (higher)" aria-label="Next slice">&#9650;</button>
+          <button type="button" id="quickDown" title="Previous slice (lower)" aria-label="Previous slice">&#9660;</button>
+          <button type="button" id="quickZoom" title="Zoom in" aria-label="Zoom in">+</button>
+          <button type="button" id="quickFit" title="Fit the picture: show the whole slice">Fit</button>
+          <div class="scrollgrip" aria-hidden="true">scroll page</div>
+        </div>
+      </div>
+      <p class="hint touchhint">Tap marks a microbleed (tap the ring again to remove it). One finger up or down: slices. Two fingers: zoom and move. Swipe on the right margin to scroll the page.</p>
+      <div class="slicebar">
+        <button type="button" class="small" id="sliceDown" aria-label="Previous slice (lower)">&#9660;</button>
+        <input type="range" id="slice" min="1" max="1" value="1" step="1" aria-label="Slice">
+        <button type="button" class="small" id="sliceUp" aria-label="Next slice (higher)">&#9650;</button>
+        <span class="val" id="sliceVal">- / -</span>
+      </div>
+      <div class="marklist" id="markList"></div>
+    </section>
+
+    <div class="rightcol">
+      <aside class="score card" id="scorePanel" aria-live="polite"></aside>
+      <aside class="progress card" id="progressPanel" aria-label="My progress"></aside>
+    </div>
+  </main>
+
+  <footer>
+    <p><b>Data:</b> VALDO 2021 challenge ("Where is VALDO?"), Task 2 (cerebral microbleeds), public training data:
+      Sudre, Carole H&eacute;l&egrave;ne; Van Wijnen, Kimberlin; Dubost, Florian; de Groot, Marius; de Bruijne, Marleen (2021).
+      Training dataset for the VALDO 2021 challenge - Vascular Lesion Detection. Zenodo.
+      <a href="https://doi.org/10.5281/zenodo.4520773" target="_blank" rel="noopener">DOI: 10.5281/zenodo.4520773</a>.
+      Challenge paper: Sudre CH et al., "Where is VALDO? VAscular Lesions Detection and segmentatiOn challenge at MICCAI 2021",
+      Medical Image Analysis 2024, <a href="https://doi.org/10.1016/j.media.2023.103029" target="_blank" rel="noopener">doi:10.1016/j.media.2023.103029</a>
+      (<a href="https://arxiv.org/abs/2208.07167" target="_blank" rel="noopener">arXiv 2208.07167</a>).</p>
+    <details>
+      <summary>Full credit: cohorts, ALFA contributors, funding</summary>
+      <p>Task 2 data come from the SABRE study, the Rotterdam Scan Study and the ALFA study, <b>for the ALFA Study</b>. ALFA contributors:
+        M&uuml;ge Akinci, Annabella Beteta, Raffaele Cacciaglia, Alba Ca&ntilde;as, Irene Cumplido, Carme Deulofeu, Ruth Dominguez, Maria Emilio, Carles Falc&oacute;n, Karine Fauria, Sherezade Fuentes, Juan Domingo Gispert, Oriol Grau-Rivera, Jos&eacute; M. Gonz&aacute;lez-de-Ech&aacute;varri, Laura Hernandez, Gema Huesa, Jordi Huguet, Iva Knezevic, Eider M. Arenaza-Urquijo, Eva M Palacios, Paula Marne, Tania Mench&oacute;n, Marta Mil&agrave;-Alom&agrave;, Carolina Minguillon, Jos&eacute; Luis Molinuevo, Gr&eacute;gory Operto, Albina Polo, Gemma Salvad&oacute;, Sandra Pradas, Blanca Rodr&iacute;guez, Aleix Sala-Vila, Gonzalo S&aacute;nchez-Benavides, Mahnaz Shekari, Anna Soteras, Marc Su&aacute;rez-Calvet, Laura Stankeviciute, Marc Vilanova and Natalia Vilor-Tejedor.</p>
+      <p>Funding acknowledged as requested by the data providers: Wellcome Trust (082464/Z/07/Z), British Heart Foundation (SP/07/001/23603, PG/08/103, PG/12/29/29497 and CS/13/1/30327), Erasmus MC University Medical Center, the Erasmus University Rotterdam, the Netherlands Organization for Scientific Research (NWO) Grant 918-46-615, the Netherlands Organization for Health Research and Development (ZonMW), the Research Institute for Disease in the Elderly (RIDE), and the European Union Seventh Framework Programme (FP7/2007&ndash;2013) under grant agreement No. 601055, VPHDARE@IT, the Dutch Technology Foundation STW.</p>
+      <p>Cohort references: Tillin T, et al. Southall And Brent REvisited: Cohort profile of SABRE. Int J Epidemiol 2012, doi:10.1093/ije/dyq175 &middot;
+        Jones S, et al. Cohort profile update: SABRE. Int J Epidemiol 2020, doi:10.1093/ije/dyaa135 &middot; Molinuevo JL, et al. 2016,
+        doi:10.1016/j.trci.2016.02.003 &middot; Ikram MA, et al. The Rotterdam Scan Study: design update 2016 and main findings.
+        Eur J Epidemiol 2015, doi:10.1007/s10654-015-0105-7.</p>
+    </details>
+    <p><b>Licence:</b> the source data are licensed under
+      <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a>.
+      The slice pictures and data files of this page are adaptations of that material and are shared under the same licence:
+      <b>non-commercial use only (NC)</b>, give credit as above, <b>share adaptations under the same licence (SA)</b>.
+      Changes made: cropping to the non-zero part of the image, grey window, conversion of every axial slice to an 8-bit JPEG picture,
+      microbleeds counted as 26-connected clusters, detections of an algorithm added.</p>
+    <p id="footCases"></p>
+    <p id="footSoftware"></p>
+    <p><b>For teaching only. Not a medical device</b>, not for diagnosis or any clinical decision.
+      Code: <a href="https://github.com/mendeltem/cmb_detection_trainer" target="_blank" rel="noopener">github.com/mendeltem/cmb_detection_trainer</a>.</p>
+    <p id="footStorage"></p>
+  </footer>
+</div>
+
+<!-- patient list -->
+<div class="picker" id="picker" hidden role="dialog" aria-modal="true" aria-labelledby="pickTitle">
+  <div class="pickerbox">
+    <div class="pickerhead">
+      <h2 id="pickTitle">Choose a patient</h2>
+      <div class="seg" id="pickSite" role="group" aria-label="Site">
+        <button type="button" data-site="all">All</button>
+        <button type="button" data-site="1">Site 1</button>
+        <button type="button" data-site="2">Site 2</button>
+        <button type="button" data-site="3">Site 3</button>
+      </div>
+      <label class="chk"><input type="checkbox" id="pickHideDone"> Hide done</label>
+      <span class="spacer"></span>
+      <button type="button" id="pickRandom">Random patient</button>
+      <button type="button" id="pickClose" class="quiet">Close</button>
+    </div>
+    <p class="hint" id="pickNote"></p>
+    <div class="tablewrap"><table id="pickTable"><thead></thead><tbody></tbody></table></div>
+  </div>
+</div>
+
+<!-- tutorial -->
+<div class="tut" id="tut" hidden role="dialog" aria-modal="true" aria-labelledby="tutTitle">
+  <div class="tutbox">
+    <canvas id="tutCv"></canvas>
+    <div class="tuttext">
+      <div class="tutstep" id="tutStep"></div>
+      <h2 id="tutTitle"></h2><div id="tutText"></div>
+      <div class="tutbtns">
+        <button type="button" id="tutBack" class="quiet">Back</button><button type="button" id="tutNext" class="primary">Next</button>
+        <button type="button" id="tutSkip" class="quiet">Skip tutorial</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="modal" hidden role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <div class="modalbox">
+    <h2 id="modalTitle"></h2>
+    <p id="modalText"></p>
+    <div class="row">
+      <button type="button" id="modalCancel">Cancel</button>
+      <button type="button" id="modalOk" class="primary">OK</button>
+    </div>
+  </div>
+</div>
+<div id="toast" hidden role="status"></div>
+
+<!-- The small index of all patients. The data of ONE patient are loaded later, as a script
+     (not fetch), and its slice pictures as plain images: so the page also works from file:// -->
+<script src="data/cases.js"></script>
+
+<script>
+"use strict";
+/* ==========================================================================
+   Small settings
+   ========================================================================== */
+const STORAGE_KEY = "cmb-detection-trainer-v1";   // own key: other pages on the same web address keep theirs
+const HISTORY_KEPT = 30;
+const HISTORY_SHOWN = 20;
+const ALGO = "3D U-Net";                          // name of the automatic method
+const MAX_MARKERS = 99;
+const PARALLEL_LOADS = 6;                         // slice pictures loaded at the same time
+const CLASSES = ["<2", "2-5", ">5"];
+const CLASS_LABEL = { "<2": "< 2 mm", "2-5": "2–5 mm", ">5": "> 5 mm" };
+const COL = { own: "#ffb000", found: "#00d68f", missed: "#4da3ff", fp: "#ff5a36", dup: "#aaaab4" };
+const INDEX = window.CMB_INDEX || null;
+const ROWS = INDEX && Array.isArray(INDEX.cases) ? INDEX.cases : [];
+const ROW_BY_ID = {};
+for (const r of ROWS) ROW_BY_ID[r.id] = r;
+const ALL_IDS = ROWS.map(r => r.id);
+const $ = id => document.getElementById(id);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+/* ==========================================================================
+   State
+   ========================================================================== */
+const state = {
+  id: null,                 // patient on the screen
+  slice: 0,                 // slice on the screen (0 = lowest)
+  scored: false,            // this patient is scored and locked
+  markers: [],              // your markers: {x, y, z} in voxels of the cropped stack
+  showAlgo: false,          // after scoring: the overlay shows the algorithm's detections instead of yours
+  showMarks: true,
+  fillRef: false,
+  smooth: false,
+  bright: 0, contrast: 0,   // -100 .. 100
+  tutorialSeen: false,
+  progress: emptyProgress(),
+};
+const FRESH_SETTINGS = { showAlgo: false, showMarks: true, fillRef: false, smooth: false, bright: 0, contrast: 0 };
+let CASE = null;              // data of the patient on the screen (from data/case_<id>.js)
+let images = [];              // images[slice] = loaded HTMLImageElement or null
+let loader = null;            // the running picture loader of this patient
+let score = null, algoScore = null;
+let storageWorks = true;
+let loading = false;
+
+// patients : id -> { first: {f1,tp,fp,fn,dup,cls}, best, tries, beat, algo }
+// history  : the last scores, oldest first: { id, f1, algo, retry }
+// round    : patients scored in the running round ("Next patient" does not repeat them)
+function emptyProgress(){ return { patients: {}, history: [], round: [] }; }
+
+/* ==========================================================================
+   Saving and loading (localStorage). Every access is in try/catch: the page
+   also works when storage is blocked, it then simply forgets on reload.
+   ========================================================================== */
+function save(){
+  try {
+    const out = {
+      v: 1,
+      settings: { smooth: state.smooth, fillRef: state.fillRef, tutorialSeen: state.tutorialSeen },
+      current: CASE ? { id: state.id, slice: state.slice, scored: state.scored,
+                        markers: state.markers.map(m => [m.x, m.y, m.z]) } : null,
+      progress: state.progress,
+    };
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(out));
+    storageWorks = true;
+  } catch (err){ storageWorks = false; }
+  showStorageNote();
+}
+const isUnit = v => typeof v === "number" && Number.isFinite(v) && v >= 0 && v <= 1;
+const isCount = v => Number.isInteger(v) && v >= 0 && v < 10000;
+// Read what was saved. Everything is checked: a save from an older version of the page, from
+// another page or a damaged one never breaks the page; what does not fit is simply dropped.
+function load(){
+  let saved = null;
+  try { saved = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || "null"); }
+  catch (err){ storageWorks = false; saved = null; }
+  if (!saved || typeof saved !== "object" || saved.v !== 1) return null;
+  try {
+    const st = saved.settings && typeof saved.settings === "object" ? saved.settings : {};
+    state.smooth = st.smooth === true;
+    state.fillRef = st.fillRef === true;
+    state.tutorialSeen = st.tutorialSeen === true;
+  } catch (err){ /* keep the defaults */ }
+  try {
+    const from = saved.progress && typeof saved.progress === "object" ? saved.progress : {};
+    const progress = emptyProgress();
+    const pats = from.patients && typeof from.patients === "object" ? from.patients : {};
+    for (const id of Object.keys(pats)){
+      const p = pats[id], row = ROW_BY_ID[id];
+      if (!row || !p || !p.first || typeof p.first !== "object") continue;
+      const f = p.first;
+      if (!isUnit(f.f1) || !isCount(f.tp) || !isCount(f.fp) || !isCount(f.fn) || f.tp + f.fn !== row.nRef) continue;
+      const cls = Array.isArray(f.cls) && f.cls.length === 3 && f.cls.every((v, i) => isCount(v) && v <= row.classes[i]) ? f.cls : null;
+      if (!cls) continue;
+      const first = { f1: f.f1, tp: f.tp, fp: f.fp, fn: f.fn, dup: isCount(f.dup) ? f.dup : 0, cls };
+      progress.patients[id] = { first, best: isUnit(p.best) ? Math.max(p.best, f.f1) : f.f1,
+                                tries: p.tries >= 1 ? Math.floor(p.tries) : 1,
+                                beat: verdictOf(first, algoOf(row)) === "win", algo: row.algoF1 };
+    }
+    if (Array.isArray(from.history)){
+      for (const h of from.history){
+        if (h && ROW_BY_ID[h.id] && isUnit(h.f1) && isUnit(h.algo)) progress.history.push({ id: h.id, f1: h.f1, algo: h.algo, retry: h.retry === true });
+      }
+      progress.history = progress.history.slice(-HISTORY_KEPT);
+    }
+    if (Array.isArray(from.round)){
+      for (const id of from.round) if (ROW_BY_ID[id] && progress.patients[id] && !progress.round.includes(id)) progress.round.push(id);
+    }
+    state.progress = progress;
+  } catch (err){ state.progress = emptyProgress(); }
+  return saved.current && typeof saved.current === "object" ? saved.current : null;
+}
+// Put the saved markers of the patient on the screen back, if they fit this patient.
+function restoreCurrent(cur){
+  try {
+    if (!cur || cur.id !== state.id || !Array.isArray(cur.markers)) return;
+    const ms = [];
+    for (const m of cur.markers){
+      if (Array.isArray(m) && m.length === 3 && m.every(Number.isInteger) && m[0] >= 0 && m[1] >= 0 && m[2] >= 0 &&
+          m[0] < CASE.width && m[1] < CASE.height && m[2] < CASE.n_slices && ms.length < MAX_MARKERS) ms.push({ x: m[0], y: m[1], z: m[2] });
+    }
+    state.markers = ms;
+    state.slice = Number.isInteger(cur.slice) ? clamp(cur.slice, 0, CASE.n_slices - 1) : state.slice;
+    state.scored = cur.scored === true;
+  } catch (err){ state.markers = []; state.scored = false; }
+}
+function showStorageNote(){
+  $("footStorage").textContent = storageWorks
+    ? "Your markers and scores are saved in this browser only (nothing is uploaded)."
+    : "This browser blocks local storage: your progress is lost when the page is reloaded.";
+}
+
+/* ==========================================================================
+   Scoring
+   A marker is a hit if it lies inside a reference microbleed, or at most
+   tolerance.inplane_mm away from one of its voxels within the slice and at
+   most tolerance.slices slices above or below that voxel. Markers and
+   microbleeds are paired one to one, nearest first. A further marker on a
+   microbleed that is already found is a duplicate (not counted). Every other
+   marker is a false alarm. The algorithm's detections are scored the same way.
+   F1 = 2 TP / (2 TP + FP + FN). Nothing to find and nothing marked: F1 = 1.
+   ========================================================================== */
+function scoreMarkers(c, markers){
+  const [dx, dy, dz] = c.voxel_mm, tol = c.tolerance;
+  const pairs = [], near = markers.map(() => []);
+  markers.forEach((m, mi) => {
+    c.clusters.forEach((cl, ci) => {
+      let best = Infinity;
+      const v = cl.voxels;
+      for (let i = 0; i < v.length; i += 3){
+        const sl = Math.abs(v[i + 2] - m.z);
+        if (sl > tol.slices) continue;
+        const ex = (v[i] - m.x) * dx, ey = (v[i + 1] - m.y) * dy, inplane = Math.sqrt(ex * ex + ey * ey);
+        if (inplane > tol.inplane_mm + 1e-9) continue;
+        const d = Math.sqrt(inplane * inplane + sl * dz * sl * dz);
+        if (d < best) best = d;
+      }
+      if (best < Infinity){ pairs.push({ mi, ci, d: best }); near[mi].push({ ci, d: best }); }
+    });
+  });
+  pairs.sort((a, b) => a.d - b.d || a.mi - b.mi || a.ci - b.ci);
+  const status = markers.map(() => null);          // {type: "hit" | "dup" | "fp", ci}
+  const foundBy = c.clusters.map(() => -1);
+  for (const p of pairs){
+    if (status[p.mi] === null && foundBy[p.ci] < 0){ status[p.mi] = { type: "hit", ci: p.ci }; foundBy[p.ci] = p.mi; }
+  }
+  markers.forEach((m, mi) => {
+    if (status[mi]) return;
+    if (near[mi].length){ near[mi].sort((a, b) => a.d - b.d); status[mi] = { type: "dup", ci: near[mi][0].ci }; }
+    else status[mi] = { type: "fp", ci: -1 };
+  });
+  const tp = foundBy.filter(i => i >= 0).length, fn = c.clusters.length - tp;
+  const fp = status.filter(s => s.type === "fp").length, dup = status.filter(s => s.type === "dup").length;
+  const cls = [0, 0, 0], clsTotal = [0, 0, 0];
+  c.clusters.forEach((cl, ci) => { const k = CLASSES.indexOf(cl.size_class); clsTotal[k]++; if (foundBy[ci] >= 0) cls[k]++; });
+  return {
+    tp, fp, fn, dup, status, foundBy, cls, clsTotal, nRef: c.clusters.length, nMarkers: markers.length,
+    f1: tp + fp + fn === 0 ? 1 : 2 * tp / (2 * tp + fp + fn),
+    precision: tp + fp ? tp / (tp + fp) : null,
+    recall: tp + fn ? tp / (tp + fn) : null,
+  };
+}
+function algoMarkers(){ return CASE.algo.map(a => ({ x: a[0], y: a[1], z: a[2] })); }
+function refreshScores(){
+  score = CASE && state.scored ? scoreMarkers(CASE, state.markers) : null;
+  algoScore = CASE && state.scored ? scoreMarkers(CASE, algoMarkers()) : null;
+}
+// numbers of the algorithm on a patient, from the index (for the progress and the list)
+function algoOf(row){ return { f1: row.algoF1, fp: row.algoFP }; }
+// "win" | "lose" | "tie": F1 compared as shown (3 decimals); equal F1: fewer false alarms wins
+function verdictOf(own, algo){
+  const a = Math.round(own.f1 * 1000), b = Math.round(algo.f1 * 1000);
+  if (a !== b) return a > b ? "win" : "lose";
+  if (own.fp !== algo.fp) return own.fp < algo.fp ? "win" : "lose";
+  return "tie";
+}
+
+/* ==========================================================================
+   Number formatting
+   ========================================================================== */
+const f3 = v => (v === null || v === undefined ? "n/a" : v.toFixed(3));
+const pct = v => (v === null || v === undefined ? "n/a" : Math.round(v * 100) + " %");
+const frac = (a, b) => (b ? `${a}/${b}` : "–");
+
+/* ==========================================================================
+   Drawing: the grey picture on #cvImg (brightness / contrast as a CSS filter,
+   so no pixel has to be read back), the rings on #cv on top of it
+   ========================================================================== */
+const cv = $("cv"), ctx = cv.getContext("2d"), cvImg = $("cvImg"), ictx = cvImg.getContext("2d"), viewEl = $("view");
+const view = { zoom: 1, panX: 0, panY: 0 };
+let viewW = 0, viewH = 0, dpr = 1, drawQueued = false;
+
+function geometry(){
+  const c = CASE, [mmX, mmY] = c.voxel_mm;
+  const fit = 0.97 * Math.min(viewW / (c.width * mmX), viewH / (c.height * mmY));
+  const pxPerMm = fit * view.zoom, px = pxPerMm * mmX, py = pxPerMm * mmY;
+  return { px, py, pxPerMm, ox: (viewW - c.width * px) / 2 + view.panX, oy: (viewH - c.height * py) / 2 + view.panY };
+}
+// at the deepest zoom the shorter side of the picture area still shows about 12 mm of the head
+const MIN_VISIBLE_MM = 12;
+function maxZoom(){
+  const c = CASE;
+  if (!c || !viewW || !viewH) return 1;
+  const [mmX, mmY] = c.voxel_mm;
+  const fit = 0.97 * Math.min(viewW / (c.width * mmX), viewH / (c.height * mmY));
+  return clamp(Math.min(viewW, viewH) / (MIN_VISIBLE_MM * fit), 2, 24);
+}
+function clampPan(){
+  const c = CASE;
+  if (!c) return;
+  view.zoom = clamp(view.zoom, 1, maxZoom());
+  const g = geometry();
+  const limX = Math.max(0, (c.width * g.px - viewW) / 2) + 0.25 * viewW;
+  const limY = Math.max(0, (c.height * g.py - viewH) / 2) + 0.25 * viewH;
+  view.panX = clamp(view.panX, -limX, limX);
+  view.panY = clamp(view.panY, -limY, limY);
+}
+function zoomAt(mx, my, factor){
+  if (!CASE) return;
+  const before = geometry();
+  const vx = (mx - before.ox) / before.px, vy = (my - before.oy) / before.py;
+  view.zoom = clamp(view.zoom * factor, 1, maxZoom());
+  if (view.zoom === 1){ view.panX = 0; view.panY = 0; }
+  else {
+    const g = geometry();
+    view.panX += mx - (g.ox + vx * g.px);
+    view.panY += my - (g.oy + vy * g.py);
+  }
+  clampPan(); requestDraw();
+}
+function fitView(){ view.zoom = 1; view.panX = 0; view.panY = 0; requestDraw(); }
+function isFitted(){ return view.zoom === 1 && view.panX === 0 && view.panY === 0; }
+function centreOn(x, y, minZoom){
+  view.zoom = Math.max(view.zoom, minZoom || 1);
+  view.zoom = clamp(view.zoom, 1, maxZoom());
+  view.panX = 0; view.panY = 0;
+  const g = geometry();
+  view.panX = viewW / 2 - (g.ox + (x + 0.5) * g.px);
+  view.panY = viewH / 2 - (g.oy + (y + 0.5) * g.py);
+  clampPan();
+}
+function layoutBadges(){
+  const label = $("sliceLabel"), front = $("sideA"), lock = $("lockBadge");
+  front.style.top = ""; lock.style.top = "";
+  if (!viewW) return;
+  const touching = (a, b) => {
+    const p = a.getBoundingClientRect(), q = b.getBoundingClientRect();
+    return p.left < q.right + 6 && q.left < p.right + 6 && p.top < q.bottom + 3 && q.top < p.bottom + 3;
+  };
+  if (!lock.hidden && touching(lock, label)) lock.style.top = (label.offsetTop + label.offsetHeight + 4) + "px";
+  if (touching(front, label)) front.style.top = (label.offsetTop + label.offsetHeight + 4) + "px";
+  if (!lock.hidden && touching(front, lock)) front.style.top = (lock.offsetTop + lock.offsetHeight + 4) + "px";
+}
+function applyGreyFilter(){
+  const b = 1 + state.bright / 100;                    // 0 .. 2
+  const k = Math.pow(2, state.contrast / 50);          // 0.25 .. 4
+  cvImg.style.filter = (state.bright || state.contrast) ? `brightness(${b.toFixed(3)}) contrast(${k.toFixed(3)})` : "";
+}
+function requestDraw(){
+  if (drawQueued) return;
+  drawQueued = true;
+  requestAnimationFrame(() => { drawQueued = false; drawMain(); });
+}
+function drawMain(){
+  if (!CASE || !viewW) return;
+  const c = CASE, g = geometry(), img = images[state.slice];
+  ictx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ictx.fillStyle = "#000"; ictx.fillRect(0, 0, viewW, viewH);
+  if (img){
+    ictx.imageSmoothingEnabled = state.smooth || g.px * dpr < 2.5;     // zoomed in far: the real voxels
+    ictx.imageSmoothingQuality = "high";
+    ictx.drawImage(img, g.ox, g.oy, c.width * g.px, c.height * g.py);
+  }
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, viewW, viewH);
+  if (state.showMarks){
+    if (state.scored) drawReference(g);
+    drawMarkerSet(g);
+  }
+  const waiting = !img && !loading;
+  if (waiting){ $("loadBadge").textContent = "Loading slice " + (state.slice + 1) + " ..."; }
+  $("loadBadge").hidden = !(loading || waiting);
+  $("quickFit").classList.toggle("attn", !isFitted());
+}
+function ringPath(x, y, r, square){
+  ctx.beginPath();
+  if (square) ctx.rect(x - r, y - r, 2 * r, 2 * r); else ctx.arc(x, y, r, 0, 2 * Math.PI);
+}
+function ring(x, y, r, color, o){
+  o = o || {};
+  ctx.save();
+  ctx.globalAlpha = o.alpha || 1;
+  ctx.setLineDash(o.dash ? [4, 4] : []);
+  const w = o.width || 2;
+  ctx.lineWidth = w + 2.5; ctx.strokeStyle = "rgba(0,0,0,.75)"; ringPath(x, y, r, o.square); ctx.stroke();
+  ctx.lineWidth = w; ctx.strokeStyle = color; ringPath(x, y, r, o.square); ctx.stroke();
+  if (o.cross){
+    const k = r * 0.7071; ctx.setLineDash([]);
+    ctx.beginPath(); ctx.moveTo(x - k, y - k); ctx.lineTo(x + k, y + k); ctx.moveTo(x + k, y - k); ctx.lineTo(x - k, y + k); ctx.stroke();
+  }
+  if (o.label){
+    ctx.setLineDash([]); ctx.font = "600 12px system-ui, sans-serif"; ctx.lineWidth = 3; ctx.strokeStyle = "rgba(0,0,0,.85)"; ctx.fillStyle = color;
+    ctx.strokeText(o.label, x + r + 3, y - r + 4); ctx.fillText(o.label, x + r + 3, y - r + 4);
+  }
+  ctx.restore();
+}
+function markerRadius(g){ return Math.max(9, 3 * g.pxPerMm); }        // about 3 mm, at least 9 px
+// the markers of "you" (before and after scoring) or of the algorithm (after scoring)
+function drawMarkerSet(g){
+  const c = CASE, nb = c.tolerance.slices, r = markerRadius(g);
+  const who = state.scored && state.showAlgo ? "algo" : "own";
+  const ms = who === "algo" ? algoMarkers() : state.markers;
+  const s = state.scored ? (who === "algo" ? algoScore : score) : null;
+  ms.forEach((m, i) => {
+    const dzs = Math.abs(m.z - state.slice); if (dzs > nb) return;
+    const x = g.ox + (m.x + 0.5) * g.px, y = g.oy + (m.y + 0.5) * g.py, faint = dzs > 0;
+    const st = s ? s.status[i] : null;
+    const a = faint ? 0.45 : 1;
+    if (!st) ring(x, y, r, COL.own, { alpha: a, dash: faint, label: faint ? "" : String(i + 1) });
+    else if (st.type === "fp") ring(x, y, r, COL.fp, { alpha: a, dash: faint, cross: true, label: faint ? "" : "false alarm" });
+    else if (st.type === "dup") ring(x, y, r * 0.6, COL.dup, { alpha: a, dash: true, label: faint ? "" : "duplicate" });
+    else if (!faint){                                         // a hit: small cross where the click was
+      ctx.save(); ctx.lineWidth = 2;
+      for (const [w, col] of [[4, "rgba(0,0,0,.75)"], [2, COL.found]]){
+        ctx.lineWidth = w; ctx.strokeStyle = col; ctx.beginPath();
+        ctx.moveTo(x - 5, y); ctx.lineTo(x + 5, y); ctx.moveTo(x, y - 5); ctx.lineTo(x, y + 5); ctx.stroke();
+      }
+      ctx.restore();
+    }
+  });
+}
+function drawReference(g){
+  const c = CASE, nb = c.tolerance.slices, z = state.slice;
+  const s = state.showAlgo ? algoScore : score;
+  c.clusters.forEach((cl, ci) => {
+    const b = cl.bbox; if (z < b[2] - nb || z > b[5] + nb) return;
+    const found = s.foundBy[ci] >= 0, color = found ? COL.found : COL.missed;
+    const v = cl.voxels, on = [];
+    for (let i = 0; i < v.length; i += 3) if (v[i + 2] === z) on.push(i);
+    if (state.fillRef && on.length){
+      ctx.save(); ctx.globalAlpha = 0.5; ctx.fillStyle = color;
+      for (const i of on) ctx.fillRect(g.ox + v[i] * g.px, g.oy + v[i + 1] * g.py, g.px, g.py);
+      ctx.restore();
+    }
+    const x = g.ox + (cl.centroid[0] + 0.5) * g.px, y = g.oy + (cl.centroid[1] + 0.5) * g.py;
+    const half = Math.max(b[3] - b[0] + 1, b[4] - b[1] + 1) / 2;
+    const r = Math.max(13, (half * c.voxel_mm[0] + 2) * g.pxPerMm);
+    const faint = on.length === 0;
+    ring(x, y, r, color, { square: !found, alpha: faint ? 0.45 : 1, dash: faint, width: 2.5,
+      label: faint ? "" : (found ? "found" : "missed") + " #" + cl.id });
+  });
+}
+function resizeCanvas(){
+  viewW = viewEl.clientWidth; viewH = viewEl.clientHeight;
+  dpr = window.devicePixelRatio || 1;
+  for (const k of [cv, cvImg]){ k.width = Math.max(1, Math.round(viewW * dpr)); k.height = Math.max(1, Math.round(viewH * dpr)); }
+  if (CASE){ clampPan(); drawMain(); layoutBadges(); }
+}
+
+/* ==========================================================================
+   Slice pictures: one JPEG per slice, loaded as plain images (works from
+   file://), the slice on the screen first, then outwards from it
+   ========================================================================== */
+const pad3 = n => String(n).padStart(3, "0");
+function startLoader(c, focus){
+  const my = { stop: false, pending: new Set(), failed: new Set(), focus, images: new Array(c.n_slices).fill(null) };
+  let running = 0;
+  const next = () => {
+    if (my.stop) return;
+    while (running < PARALLEL_LOADS){
+      // the nearest slice to the one on the screen that is neither loaded nor loading
+      let pick = -1;
+      for (let d = 0; d < c.n_slices && pick < 0; d++){
+        for (const z of [my.focus + d, my.focus - d]){
+          if (z >= 0 && z < c.n_slices && !my.images[z] && !my.pending.has(z) && !my.failed.has(z)){ pick = z; break; }
+        }
+      }
+      if (pick < 0) return;
+      running++; my.pending.add(pick);
+      const img = new Image(), z = pick;
+      img.decoding = "async";
+      img.onload = () => {
+        running--; my.pending.delete(z);
+        if (my.stop) return;
+        my.images[z] = img;
+        if (loader === my && z === state.slice) requestDraw();
+        next();
+      };
+      img.onerror = () => {
+        running--; my.pending.delete(z); my.failed.add(z);
+        if (my.stop) return;
+        if (loader === my && z === state.slice) toast("Slice " + (z + 1) + " could not be loaded. Keep the data folder next to index.html.");
+        next();
+      };
+      img.src = c.img + pad3(z) + ".jpg";
+    }
+  };
+  my.kick = next;
+  next();
+  return my;
+}
+function waitForSlice(my, z){
+  return new Promise((resolve, reject) => {
+    const t0 = performance.now();
+    const look = () => {
+      if (my.images[z]) return resolve();
+      if (my.failed.has(z)) return reject(new Error("slice picture " + (z + 1) + " is missing"));
+      if (performance.now() - t0 > 30000) return reject(new Error("slice pictures could not be loaded"));
+      setTimeout(look, 25);
+    };
+    look();
+  });
+}
+
+/* ==========================================================================
+   Marking, scrolling, zooming (pointer events: mouse, pen, touch)
+   ========================================================================== */
+const pointers = new Map();
+let gesture = null;
+function local(e){ const r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
+function touchPoints(){ return [...pointers.values()].filter(p => p.type === "touch"); }
+function clickAt(px, py){
+  if (!CASE || loading) return;
+  const g = geometry();
+  const vx = Math.floor((px - g.ox) / g.px), vy = Math.floor((py - g.oy) / g.py);
+  if (vx < 0 || vy < 0 || vx >= CASE.width || vy >= CASE.height) return;
+  if (state.scored){ toast("This patient is scored and locked. Press \"Next patient\", or \"Try this patient again\"."); return; }
+  const r = markerRadius(g);
+  let hit = -1, best = Infinity;
+  state.markers.forEach((m, i) => {
+    if (m.z !== state.slice) return;
+    const d = Math.hypot(g.ox + (m.x + 0.5) * g.px - px, g.oy + (m.y + 0.5) * g.py - py);
+    if (d <= r && d < best){ best = d; hit = i; }
+  });
+  if (hit >= 0){ state.markers.splice(hit, 1); toast("Marker removed."); }
+  else if (state.markers.length >= MAX_MARKERS){ toast(MAX_MARKERS + " markers is the limit. Remove one first."); return; }
+  else state.markers.push({ x: vx, y: vy, z: state.slice });
+  save(); renderMarkList(); renderScorePanel(); requestDraw();
+}
+function startPinch(){
+  const [a, b] = touchPoints();
+  gesture = { kind: "pinch", dist: Math.max(1, Math.hypot(a.x - b.x, a.y - b.y)), mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 };
+}
+function movePinch(){
+  const pts = touchPoints();
+  if (pts.length < 2) return;
+  const [a, b] = pts, rect = cv.getBoundingClientRect();
+  const dist = Math.max(1, Math.hypot(a.x - b.x, a.y - b.y)), mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+  const before = geometry();
+  const vx = (gesture.mx - rect.left - before.ox) / before.px, vy = (gesture.my - rect.top - before.oy) / before.py;
+  view.zoom = clamp(view.zoom * dist / gesture.dist, 1, maxZoom());
+  const g = geometry();
+  view.panX += (mx - rect.left) - (g.ox + vx * g.px);
+  view.panY += (my - rect.top) - (g.oy + vy * g.py);
+  gesture.dist = dist; gesture.mx = mx; gesture.my = my;
+  clampPan(); requestDraw();
+}
+cv.addEventListener("pointerdown", e => {
+  if (!CASE || loading) return;
+  e.preventDefault();
+  try { cv.setPointerCapture(e.pointerId); } catch (err){ /* older browsers */ }
+  if (e.pointerType === "touch" && e.isPrimary && touchPoints().length){
+    gesture = null;                                            // a lost "finger up": forget the old fingers
+    for (const [id, p] of [...pointers]) if (p.type === "touch") pointers.delete(id);
+  }
+  pointers.set(e.pointerId, { x: e.clientX, y: e.clientY, type: e.pointerType });
+  if (e.pointerType === "touch" && touchPoints().length === 2){ startPinch(); return; }
+  if (gesture) return;
+  const p = local(e);
+  gesture = { kind: "press", id: e.pointerId, type: e.pointerType, button: e.button, sx: e.clientX, sy: e.clientY,
+              px: p.x, py: p.y, panX: view.panX, panY: view.panY, slice0: state.slice, moved: false };
+});
+cv.addEventListener("pointermove", e => {
+  if (!CASE) return;
+  const q = pointers.get(e.pointerId);
+  if (q){ q.x = e.clientX; q.y = e.clientY; }
+  if (!gesture) return;
+  if (gesture.kind === "pinch"){ movePinch(); return; }
+  if (gesture.id !== e.pointerId) return;
+  const dx = e.clientX - gesture.sx, dy = e.clientY - gesture.sy;
+  if (!gesture.moved && Math.hypot(dx, dy) > (gesture.type === "touch" ? 9 : 5)){
+    gesture.moved = true;
+    viewEl.classList.toggle("panning", gesture.type !== "touch");
+  }
+  if (!gesture.moved) return;
+  if (gesture.type === "touch"){                              // one finger: up = higher slices, down = lower
+    setSlice(gesture.slice0 + Math.round(-dy / 12));
+  } else {                                                    // mouse or pen: move the picture
+    view.panX = gesture.panX + dx; view.panY = gesture.panY + dy;
+    clampPan(); requestDraw();
+  }
+});
+function pointerEnd(e){
+  pointers.delete(e.pointerId);
+  viewEl.classList.remove("panning");
+  if (!gesture) return;
+  if (gesture.kind === "pinch"){ if (touchPoints().length < 2) gesture = null; return; }
+  if (gesture.id !== e.pointerId) return;
+  const g = gesture; gesture = null;
+  if (e.type === "pointerup" && !g.moved && (g.button === 0 || g.type === "touch")) clickAt(g.px, g.py);
+}
+cv.addEventListener("pointerup", pointerEnd);
+cv.addEventListener("pointercancel", pointerEnd);
+cv.addEventListener("contextmenu", e => e.preventDefault());
+let wheelSum = 0, wheelTimer = 0;
+cv.addEventListener("wheel", e => {
+  if (!CASE) return;
+  e.preventDefault();
+  let d = e.deltaY || e.deltaX;
+  if (e.deltaMode === 1) d *= 33; else if (e.deltaMode === 2) d *= 300;
+  if (e.ctrlKey || e.metaKey){                               // Ctrl + wheel, or a pinch on a trackpad
+    const p = local(e); zoomAt(p.x, p.y, Math.exp(-clamp(d, -40, 40) * 0.01)); return;
+  }
+  wheelSum += d;                                             // a trackpad sends many small steps
+  clearTimeout(wheelTimer); wheelTimer = setTimeout(() => { wheelSum = 0; }, 250);
+  if (Math.abs(wheelSum) >= 50){ setSlice(state.slice + (wheelSum < 0 ? 1 : -1)); wheelSum = 0; }
+}, { passive: false });
+
+/* ==========================================================================
+   Page parts
+   ========================================================================== */
+function renderTools(){
+  $("bright").value = state.bright; $("brightVal").textContent = state.bright;
+  $("contrast").value = state.contrast; $("contrastVal").textContent = state.contrast;
+  $("smooth").checked = state.smooth;
+  $("fillRef").checked = state.fillRef;
+  $("toggleMarks").textContent = state.showMarks ? "Hide markers" : "Show markers";
+  $("toggleMarks").classList.toggle("on", !state.showMarks);
+  viewEl.classList.toggle("locked", state.scored);
+  applyGreyFilter();
+}
+function renderSlice(){
+  if (!CASE) return;
+  const n = CASE.n_slices;
+  $("slice").max = n; $("slice").value = state.slice + 1;
+  $("sliceVal").innerHTML = `<span class="lab">Slice </span>${state.slice + 1} / ${n}`;
+  $("sliceLabel").textContent = `${state.id} · slice ${state.slice + 1} of ${n}` +
+    (state.scored ? (state.showAlgo ? ` · ${ALGO} vs expert` : " · you vs expert") : "");
+  $("lockBadge").hidden = !state.scored;
+  layoutBadges();
+  renderMarkList();
+  requestDraw();
+}
+function renderMarkList(){
+  const box = $("markList");
+  if (!CASE){ box.innerHTML = ""; return; }
+  const ms = state.markers;
+  if (!ms.length){
+    box.innerHTML = `<span>${state.scored ? "You placed no marker on this patient." : "No markers yet. Click on a dark spot in the picture."}</span>`;
+    return;
+  }
+  box.innerHTML = `<span>Your markers (${ms.length}):</span>` + ms.map((m, i) =>
+    `<button type="button" data-jump="${i}" class="${m.z === state.slice ? "cur" : ""}" title="Go to marker ${i + 1}">${i + 1} · slice ${m.z + 1}</button>`).join("");
+}
+function setSlice(z){
+  if (!CASE) return;
+  z = clamp(Math.round(z), 0, CASE.n_slices - 1);
+  if (z === state.slice) return;
+  state.slice = z;
+  if (loader){ loader.focus = z; loader.kick(); }
+  saveSoon(); renderSlice();
+}
+let saveTimer = 0;
+function saveSoon(){ clearTimeout(saveTimer); saveTimer = setTimeout(save, 300); }
+function jumpTo(x, y, z){
+  state.slice = clamp(z, 0, CASE.n_slices - 1);
+  if (loader){ loader.focus = state.slice; loader.kick(); }
+  centreOn(x, y, 2.5);
+  save(); renderSlice();
+  const top = viewEl.getBoundingClientRect().top;
+  if (top < 0 || top > window.innerHeight * 0.5) viewEl.scrollIntoView({ block: "start", behavior: "auto" });
+}
+
+function cmpRow(label, a, b, cls, id){
+  return `<tr class="${cls || ""}"${id ? ` id="${id}"` : ""}><td>${label}</td><td>${a}</td><td>${b}</td></tr>`;
+}
+function renderScorePanel(){
+  if (!CASE) return;
+  const c = CASE, row = ROW_BY_ID[state.id];
+  const seen = state.progress.patients[state.id];
+  let html = `<h2>Patient ${esc(state.id)}</h2>` +
+    `<p class="meta">Site ${row.site} · voxel ${c.voxel_mm.map(v => +v.toFixed(2)).join(" × ")} mm · ${c.n_slices} slices</p>`;
+  if (!state.scored){
+    html += `<p class="bigcount">Markers placed: <b id="markerCount">${state.markers.length}</b></p>` +
+      `<div class="stack"><button type="button" class="primary big" data-act="score" id="btnScore">Score</button></div>` +
+      `<p class="hint" style="margin-top:10px">The expert's microbleeds stay hidden until you score. Scoring locks this patient. ` +
+      `Scroll through <b>all ${c.n_slices} slices</b> first. Some patients have no microbleed at all.` +
+      (seen ? ` You scored this patient before (first try F1 ${f3(seen.first.f1)}); only a first try counts for your progress.` : "") + `</p>` +
+      `<div class="row"><button type="button" class="quiet" data-act="clear" id="btnClearAll"${state.markers.length ? "" : " disabled"}>Remove all markers</button>` +
+      `<button type="button" class="quiet" data-act="skip" id="btnSkip">Skip to another patient</button></div>`;
+    $("scorePanel").innerHTML = html;
+    return;
+  }
+  const s = score, a = algoScore, v = verdictOf(s, a);
+  const empty = s.nRef === 0;
+  const head = v === "win" ? "You beat the algorithm" : v === "lose" ? "The algorithm was better this time" : "A tie with the algorithm";
+  const why = Math.round(s.f1 * 1000) === Math.round(a.f1 * 1000) && v !== "tie" ? " (same F1, fewer false alarms wins)" : "";
+  const bigLabel = empty ? (s.fp === 0 ? "Correct: none" : "No microbleeds here") : "Your F1";
+  html += `<div class="f1box"><div class="lab">${bigLabel}</div>` +
+    `<div class="val" id="f1Value" data-value="${s.f1}">${f3(s.f1)}</div>` +
+    `<div class="scope">${empty ? (s.fp === 0 ? "this scan has no microbleed and you marked none" : `this scan has no microbleed: ${s.fp} false alarm${s.fp === 1 ? "" : "s"}`)
+                                : `${s.tp} of ${s.nRef} microbleed${s.nRef === 1 ? "" : "s"} found, ${s.fp} false alarm${s.fp === 1 ? "" : "s"}`}</div></div>` +
+    `<div class="verdict ${v}" id="verdict" data-verdict="${v}"><div class="head">${head}</div>` +
+    `<div class="nums">You <b>${f3(s.f1)}</b> · ${ALGO} <b id="algoF1" data-value="${a.f1}">${f3(a.f1)}</b> on the same scan${why}</div></div>` +
+    `<div class="stack" style="margin-bottom:12px"><button type="button" class="primary huge" data-act="next" id="btnNext">Next patient</button></div>` +
+    `<table class="cmp" id="cmpTable"><thead><tr><th></th><th>You</th><th>${ALGO}</th></tr></thead><tbody>` +
+    cmpRow("Hits (TP)", s.tp, a.tp, "", "rowTP") +
+    cmpRow("False alarms (FP)", s.fp, a.fp, "", "rowFP") +
+    cmpRow("Missed (FN)", s.fn, a.fn, "", "rowFN") +
+    cmpRow("Duplicates <small>(not counted)</small>", s.dup, a.dup, "", "rowDup") +
+    cmpRow("Precision", pct(s.precision), pct(a.precision), "", "rowPrec") +
+    cmpRow("Recall", pct(s.recall), pct(a.recall), "", "rowRec") +
+    cmpRow("F1", f3(s.f1), f3(a.f1), "f1row", "rowF1") +
+    `<tr class="sep"><td colspan="3">Recall by size (found / in the scan)</td></tr>` +
+    CLASSES.map((k, i) => cmpRow(CLASS_LABEL[k], frac(s.cls[i], s.clsTotal[i]), frac(a.cls[i], a.clsTotal[i]), "", "rowCls" + i)).join("") +
+    `</tbody></table>` +
+    `<div class="stack" style="margin-bottom:10px"><button type="button" data-act="algo" id="btnAlgo" class="${state.showAlgo ? "on" : ""}" aria-pressed="${state.showAlgo}">` +
+    `${state.showAlgo ? "Show my markers again" : "Show the algorithm's detections"}</button></div>`;
+  const who = state.showAlgo ? ALGO : "you", t = state.showAlgo ? a : s;
+  html += `<h3>On the picture: ${who} against the expert</h3><ul class="legend" id="legend">` +
+    `<li><i class="ring" style="border-color:var(--agree)"></i><span>Found <small>(green circle; + where ${state.showAlgo ? "it" : "you"} clicked)</small></span><b>${t.tp}</b></li>` +
+    `<li><i class="sq" style="border-color:var(--missed)"></i><span>Missed <small>(blue square)</small></span><b>${t.fn}</b></li>` +
+    `<li><i class="ring" style="border-color:var(--extra)"></i><span>False alarm <small>(red ring with ×)</small></span><b>${t.fp}</b></li>` +
+    `<li><i class="ring" style="border-color:var(--dup);border-style:dashed"></i><span>Duplicate <small>(second marker on a found one)</small></span><b>${t.dup}</b></li>` +
+    `</ul><p class="hint">A solid ring is on this slice, a dashed one on a slice close by.</p>`;
+  if (c.clusters.length){
+    html += `<h3>The expert's microbleeds</h3><div class="listwrap"><table class="list" id="refList"><thead><tr><th>#</th><th>Slice</th><th>Size</th><th>You</th><th>${ALGO === "3D U-Net" ? "U-Net" : ALGO}</th><th></th></tr></thead><tbody>` +
+      c.clusters.map((cl, ci) => `<tr><td>${cl.id}</td><td>${Math.round(cl.centroid[2]) + 1}</td>` +
+        `<td title="${cl.n_voxels} voxels, ${cl.volume_mm3} mm³">${cl.diameter_mm.toFixed(1)} mm <small class="hint">(${CLASS_LABEL[cl.size_class]})</small></td>` +
+        `<td>${s.foundBy[ci] >= 0 ? '<span class="yes">found</span>' : '<span class="nope">missed</span>'}</td>` +
+        `<td>${a.foundBy[ci] >= 0 ? '<span class="yes">found</span>' : '<span class="nope">missed</span>'}</td>` +
+        `<td><button type="button" data-ref="${ci}">Jump</button></td></tr>`).join("") +
+      `</tbody></table></div>`;
+  } else {
+    html += `<p><b>This scan has no microbleed</b> in the expert's reference.</p>`;
+  }
+  const fps = t.status.map((st, i) => (st.type === "fp" ? i : -1)).filter(i => i >= 0);
+  if (fps.length){
+    const ms = state.showAlgo ? algoMarkers() : state.markers;
+    html += `<h3>False alarms of ${who}</h3><div class="marklist" id="fpList" style="margin:0 0 10px">` +
+      fps.map(i => `<button type="button" data-fp="${i}">${state.showAlgo ? "" : (i + 1) + " · "}slice ${ms[i].z + 1}</button>`).join("") + `</div>`;
+  }
+  const sum = 2 * t.tp + t.fp + t.fn;
+  html += `<div class="formula" id="formula" data-tp="${t.tp}" data-fp="${t.fp}" data-fn="${t.fn}">` +
+    `F1 = 2·TP / (2·TP + FP + FN)<br>` +
+    (sum ? `= 2·${t.tp} / (2·${t.tp} + ${t.fp} + ${t.fn})<br>= ${2 * t.tp} / ${sum} = <b>${f3(t.f1)}</b>`
+         : `nothing to find and nothing marked: <b>F1 = 1</b> (a convention of this trainer)`) + `</div>` +
+    `<p class="hint">Hit rule: inside a microbleed, or at most ${c.tolerance.inplane_mm} mm from one of its voxels within the slice and at most ` +
+    `${c.tolerance.slices} slice${c.tolerance.slices === 1 ? "" : "s"} above or below. Each microbleed counts once. ` +
+    `Size = diameter of the sphere with the same volume. ` +
+    `${ALGO}: two-seed ensemble, out of fold (it never saw this patient in training); every component it keeps clicks once, at its most certain voxel.</p>` +
+    `<div class="stack"><button type="button" class="quiet" data-act="retry" id="btnRetry">Try this patient again</button></div>`;
+  $("scorePanel").innerHTML = html;
+}
+
+/* ---- my progress ---------------------------------------------------------
+   All numbers use the FIRST try of every patient: after scoring you have seen
+   the answer, so a second try is easier. */
+let resetAsk = false, histPick = -1;
+function progressNumbers(){
+  const pats = state.progress.patients, ids = Object.keys(pats);
+  let sum = 0, beat = 0, best = null, bestId = null, tp = 0, fp = 0, fn = 0, atp = 0, afp = 0, afn = 0, asum = 0;
+  const cls = [0, 0, 0], tot = [0, 0, 0], acls = [0, 0, 0];
+  for (const id of ids){
+    const p = pats[id], row = ROW_BY_ID[id];
+    sum += p.first.f1; asum += row.algoF1; if (p.beat) beat++;
+    if (best === null || p.best > best){ best = p.best; bestId = id; }
+    tp += p.first.tp; fp += p.first.fp; fn += p.first.fn;
+    atp += row.algoTP; afp += row.algoFP; afn += row.algoFN;
+    for (let i = 0; i < 3; i++){ cls[i] += p.first.cls[i]; tot[i] += row.classes[i]; acls[i] += row.algoClasses[i]; }
+  }
+  const n = ids.length, pf = (a, b, c) => (a + b + c ? 2 * a / (2 * a + b + c) : null);
+  return { done: n, mean: n ? sum / n : null, algoMean: n ? asum / n : null, beat, best, bestId,
+           pooled: pf(tp, fp, fn), algoPooled: pf(atp, afp, afn), fpPer: n ? fp / n : null, algoFpPer: n ? afp / n : null,
+           cls, tot, acls };
+}
+function histText(h){ return `${h.id}${h.retry ? " (another try)" : ""}: you ${f3(h.f1)}, ${ALGO} ${f3(h.algo)}`; }
+function renderProgress(){
+  const p = progressNumbers(), total = ALL_IDS.length;
+  $("doneChip").innerHTML = `<b>${p.done}</b> of ${total} patients done`;
+  const hist = state.progress.history.slice(-HISTORY_SHOWN);
+  if (histPick >= hist.length) histPick = -1;
+  const vs = (a, b, f) => (a === null ? "-" : `${f(a)} <small class="hint">(${ALGO} ${f(b)})</small>`);
+  let html = `<h3>My progress</h3><dl class="kv">` +
+    `<dt>Patients done</dt><dd id="progDone" data-value="${p.done}">${p.done} of ${total}</dd>` +
+    `<dt>Mean F1<small>first try of every patient</small></dt><dd id="progMean" data-value="${p.mean === null ? "" : p.mean}">${vs(p.mean, p.algoMean, f3)}</dd>` +
+    `<dt>Pooled F1<small>all hits, false alarms and misses added up</small></dt><dd id="progPooled" data-value="${p.pooled === null ? "" : p.pooled}">${vs(p.pooled, p.algoPooled, f3)}</dd>` +
+    `<dt>False alarms per patient</dt><dd id="progFp" data-value="${p.fpPer === null ? "" : p.fpPer}">${vs(p.fpPer, p.algoFpPer, v => v.toFixed(1))}</dd>` +
+    `<dt>Beat the algorithm<small>first tries</small></dt><dd id="progBeat" data-value="${p.beat}">${p.done ? p.beat + " of " + p.done : "-"}</dd>` +
+    `<dt>Best score${p.bestId ? `<small>${esc(p.bestId)}</small>` : ""}</dt><dd id="progBest" data-value="${p.best === null ? "" : p.best}">${p.best === null ? "-" : f3(p.best)}</dd>` +
+    `</dl>`;
+  html += `<h3>Recall by size (first tries)</h3><table class="cmp" id="progCls"><thead><tr><th>Size</th><th>You</th><th>${ALGO}</th></tr></thead><tbody>` +
+    CLASSES.map((k, i) => `<tr id="progCls${i}" data-found="${p.cls[i]}" data-total="${p.tot[i]}"><td>${CLASS_LABEL[k]}</td>` +
+      `<td>${p.tot[i] ? `${p.cls[i]}/${p.tot[i]} (${pct(p.cls[i] / p.tot[i])})` : "–"}</td>` +
+      `<td>${p.tot[i] ? `${p.acls[i]}/${p.tot[i]} (${pct(p.acls[i] / p.tot[i])})` : "–"}</td></tr>`).join("") +
+    `</tbody></table>`;
+  if (hist.length){
+    html += `<h3>Last ${hist.length === 1 ? "score" : hist.length + " scores"} (F1)</h3>` +
+      `<div class="hist" id="hist" role="img" aria-label="Your last ${hist.length} F1 scores as bars, with the F1 of the algorithm as a mark on every bar">` +
+      [0, 0.5, 1].map(v => `<div class="grid" style="bottom:${v * 100}%"></div><span class="ylab" style="bottom:calc(${v * 100}% - 7px)">${v === 0.5 ? "0.5" : v}</span>`).join("") +
+      `<div class="cols">` +
+      hist.map((h, i) => `<button type="button" class="col${h.retry ? " retry" : ""}${i === histPick ? " sel" : ""}" data-hist="${i}" title="${histText(h)}" aria-label="${histText(h)}">` +
+        `<span class="fill" style="height:${(h.f1 * 100).toFixed(1)}%"></span>` +
+        `<span class="tick" style="bottom:${(h.algo * 100).toFixed(1)}%"></span></button>`).join("") +
+      `</div></div>` +
+      `<p class="histkey"><span><i style="width:10px;height:10px;background:var(--accent);border-radius:3px 3px 0 0"></i>your F1, first try</span>` +
+      `<span><i style="width:10px;height:10px;border:1.5px solid var(--accent);border-radius:3px 3px 0 0"></i>another try</span>` +
+      `<span><i style="width:12px;height:3px;background:var(--warn);border-radius:2px"></i>${ALGO}, same scan</span></p>` +
+      `<p id="histInfo">${histPick >= 0 ? histText(hist[histPick]) : `<span class="hint">Oldest on the left. Point at or tap a bar for the numbers.</span>`}</p>`;
+  } else {
+    html += `<p class="hint" id="histEmpty">No scores yet. Mark the microbleeds of this patient and press Score.</p>`;
+  }
+  html += resetAsk
+    ? `<div class="confirmbox" id="resetBox"><p><b>Remove all your scores?</b> Your progress on this device (patients done, history, best score) and the markers of the patient on the screen are removed. This cannot be undone.</p>` +
+      `<div class="row"><button type="button" data-act="resetNo" id="resetNo">Keep my progress</button>` +
+      `<button type="button" data-act="resetYes" id="resetYes">Yes, reset</button></div></div>`
+    : `<button type="button" class="quiet" data-act="reset" id="resetBtn">Reset my progress</button>`;
+  $("progressPanel").innerHTML = html;
+}
+function renderCase(){
+  renderProgress();
+  if (!CASE) return;
+  if (!viewW) resizeCanvas();
+  clampPan();
+  renderTools(); renderSlice(); renderScorePanel();
+}
+
+/* ==========================================================================
+   In-page dialog and short messages (no alert / confirm)
+   ========================================================================== */
+let modalResolve = null;
+function ask(title, text, okLabel, cancelLabel){
+  $("modalTitle").textContent = title; $("modalText").textContent = text;
+  $("modalOk").textContent = okLabel; $("modalCancel").textContent = cancelLabel || "Cancel";
+  $("modal").hidden = false; $("modalOk").focus();
+  return new Promise(resolve => { modalResolve = resolve; });
+}
+function closeModal(answer){
+  $("modal").hidden = true;
+  if (modalResolve){ const r = modalResolve; modalResolve = null; r(answer); }
+}
+$("modalOk").addEventListener("click", () => closeModal(true));
+$("modalCancel").addEventListener("click", () => closeModal(false));
+$("modal").addEventListener("pointerdown", e => { if (e.target === $("modal")) closeModal(false); });
+let toastTimer = 0;
+function toast(text){
+  $("toast").textContent = text; $("toast").hidden = false;
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { $("toast").hidden = true; }, 3500);
+}
+function fatal(text, withButton){
+  $("fatal").textContent = text; $("fatal").hidden = false;
+  if (withButton){
+    const b = document.createElement("button");
+    b.type = "button"; b.id = "fatalRetry"; b.textContent = "Try another patient";
+    b.addEventListener("click", () => { $("fatal").hidden = true; openPatient(pickRandom()); });
+    $("fatal").appendChild(document.createElement("br")); $("fatal").appendChild(b);
+  }
+}
+
+/* ==========================================================================
+   Loading one patient: data/case_<id>.js with a script tag (only when the
+   patient is opened; the patient before is dropped), then its slice pictures
+   ========================================================================== */
+function loadScript(src){
+  return new Promise((resolve, reject) => {
+    const el = document.createElement("script");
+    el.src = src; el.dataset.caseFile = "1";
+    el.onload = () => resolve(el);
+    el.onerror = () => { el.remove(); reject(new Error("file " + src + " could not be loaded")); };
+    document.head.appendChild(el);
+  });
+}
+async function loadCase(id){
+  window.CMB_CASES = window.CMB_CASES || {};
+  if (!window.CMB_CASES[id]){ const el = await loadScript("data/case_" + id + ".js"); el.remove(); }
+  const c = window.CMB_CASES[id];
+  if (!c || !Array.isArray(c.clusters) || !Array.isArray(c.algo) || !(c.n_slices > 0)) throw new Error("data file of " + id + " is empty");
+  return c;
+}
+async function openPatient(id, savedCurrent){
+  if (loading || !ROW_BY_ID[id]) return false;
+  loading = true; requestDraw();
+  $("loadBadge").textContent = "Loading patient " + id + " ..."; $("loadBadge").hidden = false;
+  let c = null, my = null, startSlice = 0;
+  try {
+    c = await loadCase(id);
+    startSlice = savedCurrent && savedCurrent.id === id && Number.isInteger(savedCurrent.slice)
+      ? clamp(savedCurrent.slice, 0, c.n_slices - 1) : Math.floor(c.n_slices / 2);
+    my = startLoader(c, startSlice);
+    await waitForSlice(my, startSlice);
+  } catch (err){
+    if (my) my.stop = true;
+    loading = false; $("loadBadge").hidden = true;
+    if (CASE){ toast("Patient " + id + " could not be loaded: " + err.message); requestDraw(); }
+    else fatal("Patient " + id + " could not be loaded (" + err.message + "). Keep the data folder next to index.html.", true);
+    return false;
+  }
+  // the new patient is ready: swap
+  if (loader) loader.stop = true;
+  loader = my; images = my.images;
+  gesture = null; pointers.clear();
+  CASE = c; state.id = id; state.slice = startSlice;
+  state.markers = []; state.scored = false; state.showAlgo = false; state.showMarks = true;
+  view.zoom = 1; view.panX = 0; view.panY = 0;
+  restoreCurrent(savedCurrent);
+  loader.focus = state.slice;
+  for (const other of Object.keys(window.CMB_CASES)) if (other !== id) delete window.CMB_CASES[other];
+  refreshScores();
+  loading = false; $("fatal").hidden = true; $("work").hidden = false;
+  histPick = -1;
+  save(); renderCase();
+  return true;
+}
+function pickRandom(){
+  const round = state.progress.round;
+  let open = ALL_IDS.filter(id => !round.includes(id) && id !== state.id);
+  if (!open.length && ALL_IDS.every(id => round.includes(id))){
+    state.progress.round = [];
+    open = ALL_IDS.filter(id => id !== state.id);
+    toast(`You have scored all ${ALL_IDS.length} patients. A new round starts.`);
+  }
+  if (!open.length) return null;
+  return open[Math.floor(Math.random() * open.length)];
+}
+
+/* ==========================================================================
+   Actions
+   ========================================================================== */
+async function mayLeave(){
+  if (!CASE || state.scored || !state.markers.length) return true;
+  return ask("Leave this patient?", "Your markers on this patient are not scored yet and will be removed.", "Leave", "Keep marking");
+}
+async function goToPatient(id){
+  if (loading) return false;
+  if (!id){ toast("This is the last patient of this round. Score it to start a new round."); return false; }
+  if (!(await mayLeave())) return false;
+  const ok = await openPatient(id);
+  if (ok) window.scrollTo(0, 0);
+  return ok;
+}
+async function scoreCurrent(){
+  if (!CASE || state.scored || loading) return;
+  const n = state.markers.length;
+  const yes = await ask("Score this patient?",
+    `You placed ${n} marker${n === 1 ? "" : "s"}. The expert's microbleeds are shown and this patient is locked.`, "Score", "Keep looking");
+  if (!yes || !CASE || state.scored) return;
+  state.scored = true; state.showAlgo = false; state.showMarks = true;
+  refreshScores();
+  const id = state.id, row = ROW_BY_ID[id], s = score;
+  const pr = state.progress, before = pr.patients[id];
+  if (before){ before.tries += 1; before.best = Math.max(before.best, s.f1); }
+  else pr.patients[id] = { first: { f1: s.f1, tp: s.tp, fp: s.fp, fn: s.fn, dup: s.dup, cls: s.cls.slice() }, best: s.f1, tries: 1,
+                           beat: verdictOf(s, algoOf(row)) === "win", algo: row.algoF1 };
+  pr.history.push({ id, f1: s.f1, algo: algoScore.f1, retry: !!before });
+  pr.history = pr.history.slice(-HISTORY_KEPT);
+  if (!pr.round.includes(id)) pr.round.push(id);
+  histPick = -1;
+  save(); renderCase();
+  // one column (phone): scroll so that the F1, the verdict and "Next patient" are on the screen
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    const next = $("btnNext"), f1 = $("f1Value");
+    if (!next || !f1) return;
+    const d = f1.parentElement.getBoundingClientRect(), nb = next.getBoundingClientRect().bottom;
+    if (d.top < 0 || nb + 14 > window.innerHeight) window.scrollBy(0, d.top - 8);
+  }));
+}
+async function retryCurrent(){
+  if (!CASE || loading) return;
+  const yes = await ask("Try this patient again?",
+    "You start without markers. Your first score stays in your progress; a better score becomes your best score.", "Try again", "Cancel");
+  if (!yes) return;
+  clearWork(); window.scrollTo(0, 0);
+}
+async function clearCurrent(){
+  if (!CASE || loading || state.scored) return;
+  const yes = await ask("Remove all markers?", "All your markers on this patient are removed.", "Remove", "Cancel");
+  if (yes) clearWork();
+}
+function clearWork(){
+  gesture = null; pointers.clear();
+  state.markers = []; state.scored = false; state.showAlgo = false; state.showMarks = true;
+  score = null; algoScore = null;
+  save(); renderCase();
+}
+async function resetProgress(){
+  resetAsk = false;
+  state.progress = emptyProgress();
+  Object.assign(state, FRESH_SETTINGS);
+  histPick = -1;
+  if (CASE) clearWork(); else { save(); renderProgress(); }
+  $("intro").open = false;
+  toast("Your progress is reset.");
+  const next = pickRandom();
+  if (next) await openPatient(next);
+  window.scrollTo(0, 0);
+}
+function toggleAlgo(){
+  if (!state.scored) return;
+  state.showAlgo = !state.showAlgo; state.showMarks = true;
+  renderTools(); renderSlice(); renderScorePanel();
+}
+function toggleMarks(){ state.showMarks = !state.showMarks; renderTools(); requestDraw(); }
+
+function quickAction(b){
+  if (!b || b.disabled) return;
+  if (b.id === "quickUp") setSlice(state.slice + 1);
+  else if (b.id === "quickDown") setSlice(state.slice - 1);
+  else if (b.id === "quickZoom") zoomAt(viewW / 2, viewH / 2, 1.5);
+  else if (b.id === "quickFit") fitView();
+}
+// A tap right after a fast swipe on the picture can arrive without a "click": a short touch on a
+// quick button acts on "pointerup"; a scroll drag ends with "pointercancel" and does nothing.
+let quickTap = null, quickTapAt = -1e9;
+$("quickBar").addEventListener("pointerdown", e => {
+  const b = e.target.closest("button");
+  quickTap = (b && e.pointerType === "touch") ? { id: e.pointerId, b, x: e.clientX, y: e.clientY } : null;
+});
+$("quickBar").addEventListener("pointercancel", () => { quickTap = null; });
+$("quickBar").addEventListener("pointerup", e => {
+  const t = quickTap; quickTap = null;
+  if (!t || t.id !== e.pointerId || e.target.closest("button") !== t.b) return;
+  if (Math.hypot(e.clientX - t.x, e.clientY - t.y) > 12) return;
+  quickTapAt = performance.now(); quickAction(t.b);
+});
+$("quickBar").addEventListener("click", e => {
+  if (performance.now() - quickTapAt < 700) return;
+  quickAction(e.target.closest("button"));
+});
+$("bright").addEventListener("input", e => { state.bright = +e.target.value; renderTools(); });
+$("contrast").addEventListener("input", e => { state.contrast = +e.target.value; renderTools(); });
+$("resetGrey").addEventListener("click", () => { state.bright = 0; state.contrast = 0; renderTools(); });
+$("smooth").addEventListener("change", e => { state.smooth = e.target.checked; save(); requestDraw(); });
+$("fillRef").addEventListener("change", e => { state.fillRef = e.target.checked; save(); requestDraw(); });
+$("toggleMarks").addEventListener("click", toggleMarks);
+$("zoomIn").addEventListener("click", () => zoomAt(viewW / 2, viewH / 2, 1.4));
+$("zoomOut").addEventListener("click", () => zoomAt(viewW / 2, viewH / 2, 1 / 1.4));
+$("zoomFit").addEventListener("click", fitView);
+$("slice").addEventListener("input", e => setSlice(+e.target.value - 1));
+$("sliceUp").addEventListener("click", () => setSlice(state.slice + 1));
+$("sliceDown").addEventListener("click", () => setSlice(state.slice - 1));
+$("markList").addEventListener("click", e => {
+  const b = e.target.closest("button[data-jump]");
+  if (b){ const m = state.markers[+b.dataset.jump]; if (m) jumpTo(m.x, m.y, m.z); }
+});
+$("scorePanel").addEventListener("click", e => {
+  const r = e.target.closest("button[data-ref]");
+  if (r){ const cl = CASE.clusters[+r.dataset.ref]; jumpTo(Math.round(cl.centroid[0]), Math.round(cl.centroid[1]), Math.round(cl.centroid[2])); return; }
+  const f = e.target.closest("button[data-fp]");
+  if (f){ const ms = state.showAlgo ? algoMarkers() : state.markers, m = ms[+f.dataset.fp]; if (m) jumpTo(m.x, m.y, m.z); return; }
+  const b = e.target.closest("button[data-act]");
+  if (!b || b.disabled) return;
+  if (b.dataset.act === "score") scoreCurrent();
+  if (b.dataset.act === "retry") retryCurrent();
+  if (b.dataset.act === "clear") clearCurrent();
+  if (b.dataset.act === "next" || b.dataset.act === "skip") goToPatient(pickRandom());
+  if (b.dataset.act === "algo") toggleAlgo();
+});
+$("progressPanel").addEventListener("click", e => {
+  const col = e.target.closest("button[data-hist]");
+  if (col){ histPick = histPick === +col.dataset.hist ? -1 : +col.dataset.hist; renderProgress(); return; }
+  const b = e.target.closest("button[data-act]");
+  if (!b) return;
+  if (b.dataset.act === "reset"){ resetAsk = true; renderProgress(); $("resetNo").focus(); }
+  if (b.dataset.act === "resetNo"){ resetAsk = false; renderProgress(); }
+  if (b.dataset.act === "resetYes") resetProgress();
+});
+
+window.addEventListener("keydown", e => {
+  if (!$("modal").hidden){ if (e.key === "Escape") closeModal(false); return; }
+  if (!$("picker").hidden){ if (e.key === "Escape") closePicker(); return; }
+  if (!$("tut").hidden){ if (e.key === "Escape") closeTutorial(); return; }
+  if (!CASE || loading || e.altKey || e.ctrlKey || e.metaKey) return;
+  const t = e.target && e.target.tagName;
+  if (t === "INPUT" && e.target.type !== "range") return;
+  if (t === "TEXTAREA" || t === "SELECT") return;
+  const key = e.key;
+  if (key === "ArrowUp" || key === "ArrowRight"){ e.preventDefault(); setSlice(state.slice + 1); }
+  else if (key === "ArrowDown" || key === "ArrowLeft"){ e.preventDefault(); setSlice(state.slice - 1); }
+  else if (key === "PageUp"){ e.preventDefault(); setSlice(state.slice + 5); }
+  else if (key === "PageDown"){ e.preventDefault(); setSlice(state.slice - 5); }
+  else if (key === "+" || key === "=") zoomAt(viewW / 2, viewH / 2, 1.4);
+  else if (key === "-") zoomAt(viewW / 2, viewH / 2, 1 / 1.4);
+  else if (key === "0") fitView();
+  else if (key === "h" || key === "H") toggleMarks();
+});
+window.addEventListener("pagehide", () => { if (CASE) save(); });
+
+/* ==========================================================================
+   Patient list ("Choose patient"). The number of microbleeds and the
+   algorithm's F1 are shown only for patients you have scored: before, they
+   would give the answer away.
+   ========================================================================== */
+const PICK_COLUMNS = [               // key, heading, extra class, tooltip, short heading (phones)
+  ["id",    "Patient",       "",     "Name of the subject in the challenge data", "Patient"],
+  ["site",  "Site",          "",     "Site of the scan (1, 2 or 3; see the footer)", "Site"],
+  ["voxel", "Voxel (mm)",    "wide", "Voxel size: in the slice x through the slices", "Voxel"],
+  ["n",     "Slices",        "",     "Number of slices", "Sl."],
+  ["cmb",   "Microbleeds",   "",     "Number of microbleeds in the expert's reference (shown after you scored the patient)", "CMB"],
+  ["algo",  ALGO + " F1",    "wide", "F1 of the algorithm on this scan (shown after you scored the patient)", "U-Net"],
+  ["first", "My first",      "",     "Your F1 at the first try", "Mine"],
+  ["best",  "My best",       "wide", "Your best F1", "Best"],
+];
+const pick = { site: "all", hideDone: false, sort: "id", dir: 1 };
+function pickValue(row, key){
+  const p = state.progress.patients[row.id];
+  if (key === "id") return row.id;
+  if (key === "site") return row.site * 1000 + +row.id.slice(4);
+  if (key === "voxel") return row.voxelMm[2];
+  if (key === "n") return row.nSlices;
+  if (key === "cmb") return p ? row.nRef : null;
+  if (key === "algo") return p ? row.algoF1 : null;
+  if (key === "first") return p ? p.first.f1 : null;
+  if (key === "best") return p ? p.best : null;
+  return 0;
+}
+function renderPicker(){
+  for (const b of $("pickSite").querySelectorAll("button")){
+    b.classList.toggle("on", b.dataset.site === pick.site);
+    b.setAttribute("aria-pressed", b.dataset.site === pick.site ? "true" : "false");
+  }
+  $("pickHideDone").checked = pick.hideDone;
+  const done = state.progress.patients;
+  let rows = ROWS.filter(r => (pick.site === "all" || String(r.site) === pick.site) && !(pick.hideDone && done[r.id]));
+  rows = rows.map(r => ({ r, v: pickValue(r, pick.sort) }));
+  rows.sort((a, b) => {
+    if (a.v === null && b.v === null) return a.r.id < b.r.id ? -1 : 1;
+    if (a.v === null) return 1;
+    if (b.v === null) return -1;
+    if (a.v === b.v) return a.r.id < b.r.id ? -1 : 1;
+    return (a.v < b.v ? -1 : 1) * pick.dir;
+  });
+  $("pickTable").querySelector("thead").innerHTML = "<tr>" + PICK_COLUMNS.map(([key, head, cls, tip, short]) => {
+    const arrow = pick.sort === key ? (pick.dir > 0 ? "&#9650;" : "&#9660;") : "";
+    const sorted = pick.sort === key ? ` aria-sort="${pick.dir > 0 ? "ascending" : "descending"}"` : "";
+    return `<th class="${cls}" data-sort="${key}" title="${tip}. Click to sort."${sorted}><span class="hl">${head}</span><span class="hs">${short}</span> <span class="arrow">${arrow}</span></th>`;
+  }).join("") + "</tr>";
+  $("pickTable").querySelector("tbody").innerHTML = rows.map(({ r }) => {
+    const p = done[r.id];
+    const mark = p ? ' <span class="donemark" title="Scored">&#10003;</span>' : "";
+    const hid = '<span class="hidden-val" title="Shown after you scored this patient">?</span>';
+    return `<tr data-id="${r.id}" class="${r.id === state.id ? "cur" : ""}" tabindex="0">` +
+      `<td>${r.id}${mark}</td><td>${r.site}</td>` +
+      `<td class="wide">${r.voxelMm[0].toFixed(2)} × ${r.voxelMm[2].toFixed(1)}</td><td>${r.nSlices}</td>` +
+      `<td>${p ? r.nRef : hid}</td><td class="wide">${p ? r.algoF1.toFixed(2) : hid}</td>` +
+      `<td>${p ? p.first.f1.toFixed(2) : ""}</td><td class="wide">${p ? p.best.toFixed(2) : ""}</td></tr>`;
+  }).join("");
+  const nDone = Object.keys(done).length;
+  $("pickNote").textContent = `${rows.length} of ${ROWS.length} patients shown, ${nDone} scored. ` +
+    `The number of microbleeds and the algorithm's F1 appear after you have scored a patient. Click a heading to sort, a row to open the patient.`;
+}
+function openPicker(){ $("picker").hidden = false; renderPicker(); $("pickClose").focus(); }
+function closePicker(){ $("picker").hidden = true; }
+async function pickPatient(id){ closePicker(); if (id !== state.id) await goToPatient(id); }
+$("pickBtn").addEventListener("click", openPicker);
+$("pickClose").addEventListener("click", closePicker);
+$("picker").addEventListener("pointerdown", e => { if (e.target === $("picker")) closePicker(); });
+$("pickSite").addEventListener("click", e => { const b = e.target.closest("button[data-site]"); if (b){ pick.site = b.dataset.site; renderPicker(); } });
+$("pickHideDone").addEventListener("change", e => { pick.hideDone = e.target.checked; renderPicker(); });
+$("pickRandom").addEventListener("click", () => { closePicker(); goToPatient(pickRandom()); });
+$("pickTable").addEventListener("click", e => {
+  const th = e.target.closest("th[data-sort]");
+  if (th){
+    if (pick.sort === th.dataset.sort) pick.dir = -pick.dir;
+    else { pick.sort = th.dataset.sort; pick.dir = ["id", "site", "voxel", "n"].includes(pick.sort) ? 1 : -1; }
+    renderPicker(); return;
+  }
+  const tr = e.target.closest("tr[data-id]");
+  if (tr) pickPatient(tr.dataset.id);
+});
+$("pickTable").addEventListener("keydown", e => {
+  const tr = e.target.closest && e.target.closest("tr[data-id]");
+  if (tr && (e.key === "Enter" || e.key === " ")){ e.preventDefault(); pickPatient(tr.dataset.id); }
+});
+
+/* ==========================================================================
+   Tutorial: three short steps with one example slice of a subject that is
+   NOT a trainer patient (data/tutorial.js, loaded only when the tutorial opens)
+   ========================================================================== */
+const TUT_STEPS = [   // title, text, show the answer?
+  ["What to look for",
+   "<p>This is one slice of a T2*-weighted MRI. <b>Cerebral microbleeds</b> are small, round or oval, <b>very dark</b> spots, " +
+   "mostly 2 to 10 mm across, seen on only a few slices.</p><p>There is one on this slice. Can you find it?</p>", false],
+  ["The expert's answer",
+   "<p>The ring shows the microbleed the expert marked here.</p>" +
+   "<p><b>Do not mark lookalikes:</b></p><ul><li>vessels: dark too, but they go on over many slices or run as a line (scroll up and down before you click)</li>" +
+   "<li>calcifications in the basal ganglia, the choroid plexus or the pineal gland</li><li>air and bone at the skull base, dark edges of the brain</li></ul>", true],
+  ["How it works here",
+   "<p><b>Scroll</b> through all slices of a patient (wheel, arrow keys, slider, or one finger up and down) and <b>click</b> on every microbleed. " +
+   "Then press <b>Score</b>.</p>" +
+   "<p>You get <b>precision</b> (how many of your markers are right), <b>recall</b> (how many microbleeds you found) and their summary, the <b>F1</b> score, " +
+   "your hits, false alarms and misses on the picture, and the result of the algorithm (" + ALGO + ") on the same scan.</p>" +
+   "<p>Some patients have <b>no microbleed</b>: then the right answer is no marker. Go on with <b>Next patient</b>, as long as you like.</p>", false],
+];
+let tutStep = 0, tutPicture = null, tutLoading = false;
+function drawTutorial(){
+  const t = window.CMB_TUTORIAL, can = $("tutCv");
+  if (!t || !tutPicture){ can.hidden = true; return; }
+  can.hidden = false;
+  const scale = 2;                                   // canvas pixels per voxel: a sharper ring
+  can.width = t.width * scale; can.height = t.height * scale;
+  can.style.aspectRatio = (t.width * t.voxelMm[0]) + " / " + (t.height * t.voxelMm[1]);
+  const cx = can.getContext("2d");
+  cx.imageSmoothingEnabled = true;
+  cx.drawImage(tutPicture, 0, 0, can.width, can.height);
+  if (TUT_STEPS[tutStep][2]){
+    const x = (t.cmb[0] + 0.5) * scale, y = (t.cmb[1] + 0.5) * scale, r = (t.diameterMm / 2 + 3) / t.voxelMm[0] * scale;
+    for (const [w, col] of [[7, "rgba(0,0,0,.8)"], [3.5, COL.found]]){
+      cx.lineWidth = w; cx.strokeStyle = col; cx.beginPath(); cx.arc(x, y, r, 0, 2 * Math.PI); cx.stroke();
+    }
+  }
+}
+function renderTutorial(){
+  const [title, html] = TUT_STEPS[tutStep];
+  $("tutStep").textContent = `Tutorial, step ${tutStep + 1} of ${TUT_STEPS.length}`;
+  $("tutTitle").textContent = title;
+  $("tutText").innerHTML = html;
+  $("tutBack").disabled = tutStep === 0;
+  $("tutNext").textContent = tutStep === TUT_STEPS.length - 1 ? "Start" : "Next";
+  $("tutSkip").hidden = tutStep === TUT_STEPS.length - 1;
+  drawTutorial();
+}
+function openTutorial(){
+  tutStep = 0;
+  $("tut").hidden = false;
+  renderTutorial();
+  $("tutNext").focus();
+  if (tutPicture || tutLoading) return;
+  tutLoading = true;
+  const showPicture = () => {
+    const t = window.CMB_TUTORIAL;
+    if (!t){ tutLoading = false; return; }
+    const img = new Image();
+    img.onload = () => { tutPicture = img; tutLoading = false; if (!$("tut").hidden) drawTutorial(); };
+    img.onerror = () => { tutLoading = false; };
+    img.src = t.png;
+  };
+  if (window.CMB_TUTORIAL) showPicture();
+  else {
+    const el = document.createElement("script");
+    el.src = "data/tutorial.js";
+    el.onload = showPicture;
+    el.onerror = () => { tutLoading = false; el.remove(); };
+    document.head.appendChild(el);
+  }
+}
+function closeTutorial(){
+  $("tut").hidden = true;
+  if (!state.tutorialSeen){ state.tutorialSeen = true; save(); }
+}
+$("tutBtn").addEventListener("click", openTutorial);
+$("tutBack").addEventListener("click", () => { if (tutStep > 0){ tutStep--; renderTutorial(); } });
+$("tutNext").addEventListener("click", () => { if (tutStep < TUT_STEPS.length - 1){ tutStep++; renderTutorial(); } else closeTutorial(); });
+$("tutSkip").addEventListener("click", closeTutorial);
+
+/* ==========================================================================
+   Start
+   ========================================================================== */
+function fillFooter(){
+  const a = INDEX.algorithm, bySite = [1, 2, 3].map(s => ROWS.filter(r => r.site === s));
+  const withCmb = ROWS.filter(r => r.nRef > 0).length;
+  const vox = s => { const r = bySite[s - 1][0]; return r ? `${r.voxelMm[0].toFixed(2)} × ${r.voxelMm[1].toFixed(2)} × ${r.voxelMm[2].toFixed(1)} mm` : ""; };
+  $("footCases").innerHTML = `<b>Patients:</b> the ${ROWS.length} cross-validation subjects of VALDO Task 2 (${withCmb} with and ${ROWS.length - withCmb} without microbleeds): ` +
+    `site 1 ${bySite[0].length} (voxel ${vox(1)}), site 2 ${bySite[1].length} (${vox(2)}), site 3 ${bySite[2].length} (about ${vox(3)}). ` +
+    `All slices of every scan are shown. <b>Expert reference:</b> the microbleed masks of the challenge; one microbleed = voxels that touch by a face, an edge or a corner (26-connectivity); ` +
+    `size = diameter of the sphere with the same volume, classes &lt; 2 / 2–5 / &gt; 5 mm. ` +
+    `<b>Algorithm:</b> ${ALGO} (two-seed ensemble of an anisotropic 3D U-Net, 5-fold cross-validation, every patient predicted by the model that never saw it; ` +
+    `threshold ${a.threshold}, components of at least ${a.minMm3} mm³, SynthSeg CSF rule; ` +
+    `<a href="https://github.com/mendeltem/cmb-valdo-chain" target="_blank" rel="noopener">cmb-valdo-chain</a>). ` +
+    `With the hit rule of this page its mean F1 is ${a.meanF1.toFixed(2)} over all ${ROWS.length} patients ` +
+    `(${a.meanF1WithCmb.toFixed(2)} over the ${withCmb} with microbleeds), pooled F1 ${a.pooledF1.toFixed(2)}.`;
+  const sw = INDEX.software || {};
+  $("footSoftware").innerHTML = `<b>Data files made with:</b> ${Object.keys(sw).map(k => k + " " + sw[k]).join(", ")}; ` +
+    `grey window ${INDEX.window.percentiles[0]} to ${INDEX.window.percentiles[1]} percentile of the non-zero voxels, JPEG quality ${INDEX.jpegQuality}.`;
+  $("orientText").textContent = "Orientation: radiological view. The right side of the picture is the patient's left side; the front of the head is on top; slice 1 is the lowest slice.";
+}
+function patientFromAddress(){
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get("patient");
+    if (!id || !ROW_BY_ID[id]) return null;
+    try {
+      params.delete("patient");
+      const rest = params.toString();
+      window.history.replaceState(null, "", window.location.pathname + (rest ? "?" + rest : "") + window.location.hash);
+    } catch (err){
+      const mark = STORAGE_KEY + "-address";
+      try {
+        if (window.sessionStorage.getItem(mark) === id) return null;
+        window.sessionStorage.setItem(mark, id);
+      } catch (err2){ /* no storage: the address is simply used again */ }
+    }
+    return id;
+  } catch (err){ return null; }
+}
+async function start(){
+  if (!INDEX || !ROWS.length){
+    $("work").hidden = true; $("pickBtn").disabled = true;
+    fatal("The patient list (data/cases.js) could not be loaded. Keep the data folder next to index.html.", false);
+    document.documentElement.dataset.ready = "1";
+    return;
+  }
+  fillFooter();
+  const saved = load();
+  showStorageNote();
+  resizeCanvas();
+  renderTools(); renderProgress();
+  if (typeof ResizeObserver === "function") new ResizeObserver(resizeCanvas).observe(viewEl);
+  window.addEventListener("resize", resizeCanvas);
+  const wanted = patientFromAddress();
+  const savedId = saved && typeof saved.id === "string" && ROW_BY_ID[saved.id] ? saved.id : null;
+  let ok = false;
+  if (wanted) ok = await openPatient(wanted, wanted === savedId ? saved : null);
+  else if (savedId) ok = await openPatient(savedId, saved);
+  if (!ok){ $("fatal").hidden = true; $("fatal").textContent = ""; ok = await openPatient(pickRandom()); }
+  document.documentElement.dataset.ready = "1";
+  const isTest = new URLSearchParams(window.location.search).get("test") === "1";
+  if (ok && !state.tutorialSeen && !isTest) openTutorial();
+}
+
+/* ==========================================================================
+   Hook for the automatic page test (build/03_test_page.mjs), only with ?test=1
+   ========================================================================== */
+if (new URLSearchParams(window.location.search).get("test") === "1"){
+  window.__cmbTest = {
+    index: INDEX, state, view,
+    getCase(){ return CASE ? { id: CASE.id, width: CASE.width, height: CASE.height, nSlices: CASE.n_slices, voxelMm: CASE.voxel_mm,
+                               nRef: CASE.clusters.length, nAlgo: CASE.algo.length, tolerance: CASE.tolerance,
+                               classes: CLASSES.map(k => CASE.clusters.filter(c => c.size_class === k).length) } : null; },
+    setMarkers(list){ if (state.scored) return false; state.markers = list.map(m => ({ x: m[0], y: m[1], z: m[2] })); save(); renderCase(); return true; },
+    markers(){ return state.markers.map(m => [m.x, m.y, m.z]); },
+    ownScoreNow(){ const s = scoreMarkers(CASE, state.markers); return { ...s, status: undefined }; },
+    algoScoreNow(){ const s = scoreMarkers(CASE, algoMarkers()); return { ...s, status: undefined }; },
+    getScore(){ return score ? { ...score, status: score.status.map(s => s.type) } : null; },
+    getAlgoScore(){ return algoScore ? { ...algoScore, status: undefined } : null; },
+    openPatient(id){ return openPatient(id); },
+    pickRandom(){ return pickRandom(); },
+    setSlice(z){ setSlice(z); },
+    loadedCaseIds(){ return Object.keys(window.CMB_CASES || {}); },
+    caseScriptCount(){ return document.querySelectorAll('script[src*="data/case_"]').length; },
+    imagesLoaded(){ return images.filter(Boolean).length; },
+    imagesFailed(){ return loader ? loader.failed.size : 0; },
+    currentImage(){ const im = images[state.slice]; return im ? { w: im.naturalWidth, h: im.naturalHeight, src: im.src } : null; },
+    voxelToClient(x, y){ const rect = cv.getBoundingClientRect(), g = geometry(); return { x: rect.left + g.ox + (x + 0.5) * g.px, y: rect.top + g.oy + (y + 0.5) * g.py }; },
+    maxZoom(){ return maxZoom(); },
+    geometry(){ return { ...geometry(), viewW, viewH }; },
+    isLoading(){ return loading; },
+  };
+}
+
+start();
+</script>
+</body>
+</html>

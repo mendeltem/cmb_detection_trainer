@@ -1,0 +1,127 @@
+Test of the CMB Detection Trainer, 2026-11-13T15:15:24.936Z
+Chromium 151.0.7922.34, Node v22.22.2
+
+PASS  first visit: page loads without console errors
+PASS  first visit: tutorial opens by itself
+PASS  tutorial: example picture shown
+PASS  tutorial: step 2 shows the expert's answer
+PASS  tutorial: last step has a Start button
+PASS  tutorial: closes
+PASS  tutorial: not shown again after a reload
+PASS  all requests stay on the page's own address (no internet needed)
+PASS  no native alert / confirm
+PASS  index lists 57 patients  [57]
+PASS  every patient: number of microbleeds, size classes, slice tolerance = Python
+PASS  every patient: algorithm TP/FP/FN/duplicates/F1 and found per size class = Python
+PASS  index: algorithm F1 and microbleed count = Python
+PASS  every patient: a click on every centroid gives F1 1.000, no false alarm
+PASS  every patient: no marker gives F1 0 (1 when there is nothing to find)
+PASS  every patient: half the centroids + 2 far clicks = Python and = 2TP/(2TP+FP+FN)
+PASS  every patient: a second click next to a found microbleed is a duplicate, not counted
+PASS  every patient: slice picture loaded with the size of the data file
+PASS  only one patient file kept in memory
+PASS  algorithm mean F1 in the index = mean of the Python values  [0.6119 vs 0.6119]
+PASS  sub-101: all 34 slice pictures load  [34 loaded, 0 failed]
+PASS  sub-218: all 187 slice pictures load  [187 loaded, 0 failed]
+PASS  sub-305: all 39 slice pictures load  [39 loaded, 0 failed]
+PASS  part 2 without console errors
+PASS  ?patient=sub-207 opens that patient
+PASS  address is cleaned after use
+PASS  slice picture is drawn (not black)
+PASS  arrow up: next slice
+PASS  page down: 5 slices lower
+PASS  mouse wheel up: higher slice
+PASS  Ctrl + wheel zooms in
+PASS  drag moves the picture and places no marker
+PASS  five clicks: five markers
+PASS  click in empty brain: a sixth marker
+PASS  click on the ring again removes it
+PASS  marker list under the picture
+PASS  marker list: jump to marker 1 goes to its slice
+PASS  score: F1 on the screen = 2TP/(2TP+FP+FN) by hand  [0.667 vs 0.667]
+PASS  score: TP 5, FP 1, FN 4
+PASS  score: table rows show the counts
+PASS  score: algorithm F1 = Python  [0.8]
+PASS  score: verdict line fits the numbers  [lose vs lose]
+PASS  score: verdict text  [The algorithm was better this time]
+PASS  score: recall by size class row (< 2 mm)  [< 2 mm2/31/3]
+PASS  score: recall by size class row (2-5 mm)  [2–5 mm3/65/6]
+PASS  score: patient locked (badge, no new marker on click)
+PASS  score: a click after scoring adds nothing
+PASS  overlay: found microbleed drawn green  [0,193,129,250]
+PASS  overlay: missed microbleed drawn blue  [74,162,255,113]
+PASS  expert list: Jump goes to the microbleed's slice
+PASS  algorithm view: legend counts are the algorithm's
+PASS  progress: 1 of 57 done
+PASS  progress: mean F1 = this F1
+PASS  progress: recall by size counts
+PASS  Next patient opens another patient
+PASS  patient without microbleeds, no marker: 'Correct: none', F1 1.000
+PASS  same with the algorithm (no detection): a tie
+PASS  sub-105 (no microbleed, algorithm 3 false alarms), no marker: you beat the algorithm
+PASS  patient without microbleeds, one marker: F1 0 and 'No microbleeds here'
+PASS  same, algorithm with 7 false alarms: you win on fewer false alarms
+PASS  progress: pooled F1 = sum over first tries
+PASS  progress: mean F1 of 4 first tries
+PASS  progress: beat the algorithm 3 of 4 (or as computed)
+PASS  another try: mean F1 unchanged (first tries only)
+PASS  reload: same patient, still scored
+PASS  reload: progress kept
+PASS  patient list: 57 rows
+PASS  patient list: microbleed count hidden for the 53 patients not scored  [53]
+PASS  patient list: site 2 filter = 27 rows
+PASS  patient list: sort by my first score puts a scored patient on top  [sub-104]
+PASS  patient list: a click opens the patient
+PASS  leaving with unscored markers asks first
+PASS  cancel: patient stays
+PASS  random order: 56 different patients before a repeat, then none left but the one on the screen
+PASS  random order: when all are done a new round starts
+PASS  reset asks in the page
+PASS  reset: progress is empty
+PASS  part 3 without console errors, no native dialog
+PASS  damaged save: page loads without errors
+PASS  damaged save: only the valid patient is kept
+PASS  damaged save: unknown patient ignored, a random patient opened
+PASS  save that is not JSON: page works
+PASS  storage blocked: patient opens
+PASS  storage blocked: scoring works
+PASS  storage blocked: footer says so
+PASS  storage blocked: no errors
+PASS  missing data file: openPatient fails, the patient before stays
+PASS  missing data file: a message in the page
+PASS  missing slice pictures: the patient before stays
+PASS  page still works after the failures
+PASS  file://: page opens a patient and loads its slice pictures
+PASS  file://: scoring works (= Python)
+PASS  file://: no errors
+PASS  phone: no sideways scrolling
+PASS  phone: quick buttons next to the picture
+PASS  phone: slice picture drawn
+PASS  phone: a tap places a marker
+PASS  phone: one finger up scrolls to higher slices, no marker  [14 -> 19]
+PASS  phone: two fingers apart zoom in, no marker
+PASS  phone: quick button ▲ goes one slice up
+PASS  phone: Fit shows the whole slice again
+PASS  phone: after Score the F1 and Next patient are on the screen
+PASS  phone: F1 1.000 for the one microbleed
+PASS  phone: no sideways scrolling after scoring
+PASS  phone: patient list without sideways scrolling
+PASS  phone: no errors
+PASS  1000x700: no sideways scrolling
+PASS  1000x700: picture at least 220 px high and fits the window  [380]
+PASS  1000x700: score = Python
+PASS  1000x700: no errors
+PASS  820x1180: no sideways scrolling
+PASS  820x1180: picture at least 220 px high and fits the window  [850]
+PASS  820x1180: score = Python
+PASS  820x1180: no errors
+PASS  844x390: no sideways scrolling
+PASS  844x390: picture at least 220 px high and fits the window  [320]
+PASS  844x390: score = Python
+PASS  844x390: no errors
+PASS  1920x1080: no sideways scrolling
+PASS  1920x1080: picture at least 220 px high and fits the window  [820]
+PASS  1920x1080: score = Python
+PASS  1920x1080: no errors
+
+122 of 122 checks passed

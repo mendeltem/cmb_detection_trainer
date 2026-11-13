@@ -1,0 +1,73 @@
+subject	site	nx	ny	nz	dx_mm	dy_mm	dz_mm	microbleeds_26conn	n_lt2mm	n_2to5mm	n_gt5mm	cv_fold	prediction	trainer_patient
+sub-101	site 1	512	512	35	0.449	0.449	4.000	12	0	11	1	fold 1	yes	yes
+sub-102	site 1	512	512	35	0.449	0.449	4.000	1	0	1	0	held-out	no	no
+sub-103	site 1	512	512	35	0.449	0.449	4.000	6	0	6	0	fold 2	yes	yes
+sub-104	site 1	512	512	35	0.449	0.449	4.000	0	0	0	0	fold 0	yes	yes
+sub-105	site 1	512	512	35	0.449	0.449	4.000	0	0	0	0	fold 1	yes	yes
+sub-106	site 1	512	512	35	0.449	0.449	4.000	3	0	3	0	fold 3	yes	yes
+sub-107	site 1	512	512	35	0.449	0.449	4.000	2	0	2	0	fold 0	yes	yes
+sub-108	site 1	512	512	35	0.449	0.449	4.000	6	0	3	3	fold 4	yes	yes
+sub-109	site 1	512	512	35	0.449	0.449	4.000	0	0	0	0	held-out	no	no
+sub-110	site 1	512	512	35	0.449	0.449	4.000	73	1	69	3	held-out	no	no
+sub-111	site 1	512	512	35	0.449	0.449	4.000	3	0	2	1	fold 0	yes	yes
+sub-201	site 2	512	512	192	0.488	0.488	0.800	0	0	0	0	held-out	no	no
+sub-202	site 2	512	512	192	0.488	0.488	0.800	0	0	0	0	fold 3	yes	yes
+sub-203	site 2	512	512	192	0.488	0.488	0.800	0	0	0	0	fold 0	yes	yes
+sub-204	site 2	512	512	192	0.488	0.488	0.800	0	0	0	0	fold 2	yes	yes
+sub-205	site 2	512	512	192	0.488	0.488	0.800	0	0	0	0	fold 4	yes	yes
+sub-206	site 2	512	512	192	0.488	0.488	0.800	0	0	0	0	fold 1	yes	yes
+sub-207	site 2	512	512	192	0.488	0.488	0.800	9	3	6	0	fold 3	yes	yes
+sub-208	site 2	512	512	192	0.488	0.488	0.800	1	0	1	0	fold 3	yes	yes
+sub-209	site 2	512	512	192	0.488	0.488	0.800	0	0	0	0	fold 3	yes	yes
+sub-210	site 2	512	512	192	0.488	0.488	0.800	0	0	0	0	fold 0	yes	yes
+sub-211	site 2	512	512	192	0.488	0.488	0.800	0	0	0	0	fold 2	yes	yes
+sub-212	site 2	512	512	192	0.488	0.488	0.800	1	0	1	0	held-out	no	no
+sub-213	site 2	512	512	192	0.488	0.488	0.800	1	1	0	0	fold 0	yes	yes
+sub-214	site 2	512	512	192	0.488	0.488	0.800	0	0	0	0	fold 4	yes	yes
+sub-215	site 2	512	512	192	0.488	0.488	0.800	1	0	1	0	held-out	no	no
+sub-216	site 2	512	512	192	0.488	0.488	0.800	21	2	19	0	fold 0	yes	yes
+sub-217	site 2	512	512	192	0.488	0.488	0.800	1	0	1	0	held-out	no	no
+sub-218	site 2	512	512	192	0.488	0.488	0.800	26	3	23	0	fold 2	yes	yes
+sub-219	site 2	512	512	192	0.488	0.488	0.800	0	0	0	0	fold 1	yes	yes
+sub-220	site 2	512	512	192	0.488	0.488	0.800	0	0	0	0	fold 3	yes	yes
+sub-221	site 2	512	512	192	0.488	0.488	0.800	11	0	11	0	held-out	no	no
+sub-222	site 2	512	512	192	0.488	0.488	0.800	11	0	11	0	fold 4	yes	yes
+sub-223	site 2	512	512	192	0.488	0.488	0.800	1	0	1	0	fold 2	yes	yes
+sub-224	site 2	512	512	192	0.488	0.488	0.800	0	0	0	0	held-out	no	no
+sub-225	site 2	512	512	192	0.488	0.488	0.800	0	0	0	0	fold 0	yes	yes
+sub-226	site 2	512	512	192	0.488	0.488	0.800	0	0	0	0	fold 2	yes	yes
+sub-227	site 2	512	512	192	0.488	0.488	0.800	0	0	0	0	fold 4	yes	yes
+sub-228	site 2	512	512	192	0.488	0.488	0.800	8	0	8	0	fold 1	yes	yes
+sub-229	site 2	512	512	192	0.488	0.488	0.800	1	1	0	0	fold 4	yes	yes
+sub-230	site 2	512	512	192	0.488	0.488	0.800	0	0	0	0	fold 1	yes	yes
+sub-231	site 2	512	512	192	0.488	0.488	0.800	0	0	0	0	fold 3	yes	yes
+sub-232	site 2	512	512	192	0.488	0.488	0.800	1	0	1	0	fold 1	yes	yes
+sub-233	site 2	512	512	192	0.488	0.488	0.800	0	0	0	0	fold 0	yes	yes
+sub-234	site 2	512	512	192	0.488	0.488	0.800	2	0	2	0	held-out	no	no
+sub-301	site 3	256	256	39	1.000	1.000	3.000	1	0	1	0	fold 3	yes	yes
+sub-302	site 3	256	256	39	1.000	1.000	3.000	1	0	0	1	fold 4	yes	yes
+sub-303	site 3	256	256	49	1.000	1.000	3.000	1	0	1	0	fold 1	yes	yes
+sub-304	site 3	256	256	39	1.000	1.000	4.000	1	0	1	0	fold 0	yes	yes
+sub-305	site 3	256	256	39	1.000	1.000	3.000	2	0	2	0	fold 2	yes	yes
+sub-306	site 3	256	256	39	1.000	1.000	3.000	1	0	1	0	held-out	no	no
+sub-307	site 3	256	256	39	1.000	1.000	3.000	1	0	1	0	fold 3	yes	yes
+sub-308	site 3	256	256	39	1.000	1.000	3.000	1	0	1	0	fold 4	yes	yes
+sub-309	site 3	256	256	39	1.000	1.000	3.000	1	0	1	0	held-out	no	no
+sub-310	site 3	256	256	46	1.000	1.000	3.000	1	0	1	0	fold 1	yes	yes
+sub-311	site 3	256	256	39	1.000	1.000	3.000	1	0	0	1	fold 0	yes	yes
+sub-312	site 3	256	256	36	1.000	1.000	4.000	2	0	2	0	fold 2	yes	yes
+sub-313	site 3	256	256	39	1.000	1.000	4.000	1	0	1	0	fold 3	yes	yes
+sub-314	site 3	256	256	39	1.000	1.000	3.999	1	0	1	0	fold 4	yes	yes
+sub-315	site 3	256	256	39	1.000	1.000	4.000	1	0	1	0	fold 1	yes	yes
+sub-316	site 3	256	256	39	1.000	1.000	4.000	2	0	2	0	fold 0	yes	yes
+sub-317	site 3	256	256	48	1.000	1.000	3.000	1	0	1	0	held-out	no	no
+sub-318	site 3	256	256	39	1.000	1.000	3.000	1	0	1	0	fold 2	yes	yes
+sub-319	site 3	256	256	39	1.000	1.000	3.000	1	0	1	0	fold 3	yes	yes
+sub-320	site 3	256	256	39	1.000	1.000	3.000	2	0	2	0	fold 4	yes	yes
+sub-321	site 3	256	256	39	1.000	1.000	3.999	2	0	2	0	fold 1	yes	yes
+sub-322	site 3	256	256	39	1.000	1.000	3.000	1	0	0	1	fold 0	yes	yes
+sub-323	site 3	256	256	39	1.000	1.000	4.000	1	0	1	0	fold 2	yes	yes
+sub-324	site 3	256	256	39	1.000	1.000	3.000	1	0	1	0	fold 3	yes	yes
+sub-325	site 3	256	256	36	1.000	1.000	4.000	3	0	2	1	held-out	no	no
+sub-326	site 3	256	256	39	1.000	1.000	3.000	1	0	1	0	held-out	no	no
+sub-327	site 3	256	256	39	1.000	1.000	3.000	1	0	1	0	fold 4	yes	yes
