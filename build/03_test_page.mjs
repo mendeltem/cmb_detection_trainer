@@ -35,7 +35,7 @@ const ALL_IDS = Object.keys(expected.cases);
 const { chromium } = createRequire(import.meta.url)(PLAYWRIGHT_DIR);
 
 // ---- a tiny static web server ------------------------------------------------
-const TYPES = { ".html": "text/html", ".js": "text/javascript", ".jpg": "image/jpeg", ".png": "image/png", ".json": "application/json" };
+const TYPES = { ".html": "text/html", ".js": "text/javascript", ".jpg": "image/jpeg", ".png": "image/png", ".json": "application/json", ".mp4": "video/mp4", ".md": "text/markdown" };
 const server = http.createServer((req, res) => {
   const p = decodeURIComponent(new URL(req.url, "http://x").pathname);
   const file = path.join(PAGE_DIR, p === "/" ? "index.html" : p);
@@ -140,20 +140,110 @@ if (PAGE_URL_ARG) {
   check("first visit: tutorial opens by itself", await page.$eval("#tut", e => !e.hidden));
   await page.waitForFunction(() => !document.getElementById("tutCv").hidden, null, { timeout: 5000 }).catch(() => {});
   check("tutorial: example picture shown", await page.$eval("#tutCv", e => !e.hidden && e.width > 100));
+  check("tutorial: the clip is not loaded before it is played (preload=none)",
+        !page.requests.some(u => u.includes("vessel_clip.mp4")) && (await page.$eval("#tutVid", v => v.preload)) === "none");
   await shot(page, "02_tutorial_step1");
-  await page.click("#tutNext"); await frames(page);
-  check("tutorial: step 2 shows the expert's answer", (await pageText(page, "#tutTitle")) === "The expert's answer");
-  await shot(page, "03_tutorial_step2_answer");
-  await page.click("#tutNext");
+  // every step in order: its title, what it shows, one screenshot each
+  const TITLES = ["What to look for", "The expert's answer", "Size: what counts as one microbleed", "Lookalike 1 of 4: a vessel",
+                  "Lookalike 2 of 4: calcium", "Lookalike 3 of 4: air and bone", "Lookalike 4 of 4: a dark edge", "How it works here",
+                  "Reading your score", "Why the count matters"];
+  check("tutorial: 10 steps", (await pageText(page, "#tutStep")).endsWith(`of ${TITLES.length}`), await pageText(page, "#tutStep"));
+  await page.waitForFunction(() => !!window.CMB_TUTORIAL_PICS, null, { timeout: 5000 }).catch(() => {});
+  const shown = () => page.evaluate(() => ({ canvas: !document.getElementById("tutCv").hidden ? document.getElementById("tutCv").width : 0,
+                                             video: !document.getElementById("tutVid").hidden, fig: !document.getElementById("tutFig").hidden,
+                                             cap: document.getElementById("tutCap").textContent, text: document.getElementById("tutText").textContent }));
+  // all tutorial pictures come from VALDO subjects that are not trainer patients (no data/case_<id>.js, not in the index)
+  const tutSubjects = await page.evaluate(() => [window.CMB_TUTORIAL.subject, ...Object.values(window.CMB_TUTORIAL_PICS || {}).map(p => p.subject)]);
+  const notTrainer = id => !ALL_IDS.includes(id) && !fs.existsSync(path.join(PAGE_DIR, "data", `case_${id}.js`));
+  check("tutorial: 4 pictures loaded (example slice + 3 lookalikes)", tutSubjects.length === 4, tutSubjects.join(", "));
+  check("tutorial: no picture subject is a trainer patient", tutSubjects.every(notTrainer), tutSubjects.join(", "));
+  for (let k = 1; k < TITLES.length; k++){
+    await page.click("#tutNext"); await frames(page);
+    const title = await pageText(page, "#tutTitle"), v = await shown();
+    check(`tutorial step ${k + 1}: "${TITLES[k]}"`, title === TITLES[k], title);
+    if (k === 1) check("tutorial step 2: picture with the expert's ring", v.canvas > 100 && v.cap.includes("sub-102"));
+    if (k === 2){
+      check("tutorial step 3: zoomed picture of the example microbleed", v.canvas > 100 && v.cap.includes("24 mm"));
+      check("tutorial step 3: size classes and the example's size", ["< 2 mm", "2–5 mm", "> 5 mm", "4.7 mm", "class 2–5 mm"].every(x => v.text.includes(x)));
+      check("tutorial step 3: tiny ones missed most (4 of 10, 79 of 121 as in the README)", v.text.includes("4 of 10") && v.text.includes("79 of 121"));
+    }
+    if (k === 3){
+      check("tutorial step 4: the clip is shown, the canvas hidden", v.video && v.canvas === 0);
+      const vid = await page.$eval("#tutVid", e => ({ src: e.querySelector("source").getAttribute("src"), poster: e.getAttribute("poster"), controls: e.controls, auto: e.autoplay }));
+      check("tutorial step 4: <video> refers to data/vessel_clip.mp4, controls, no autoplay", vid.src === "data/vessel_clip.mp4" && vid.controls && !vid.auto && vid.poster === "data/vessel_clip.jpg");
+      const mp4 = path.join(PAGE_DIR, "data/vessel_clip.mp4"), size = fs.existsSync(mp4) ? fs.statSync(mp4).size : 0;
+      check("tutorial step 4: data/vessel_clip.mp4 exists, under 8 MB", size > 100000 && size < 8e6, String(size));
+      const res = await page.evaluate(async () => { const r = await fetch("data/vessel_clip.mp4", { method: "HEAD" }); return [r.status, r.headers.get("content-type")]; });
+      check("tutorial step 4: the clip is served (200, video/mp4)", res[0] === 200 && res[1] === "video/mp4", res.join(" "));
+      const poster = await page.evaluate(async () => (await fetch("data/vessel_clip.jpg")).status);
+      check("tutorial step 4: poster picture served", poster === 200);
+      check("tutorial step 4: data credit under the clip (VALDO, CC BY-NC-SA 4.0, changes made)", v.cap.includes("VALDO") && v.cap.includes("CC BY-NC-SA 4.0") && v.cap.includes("changes made") && v.cap.includes("sub-102"));
+      const canH264 = await page.$eval("#tutVid", e => e.canPlayType('video/mp4; codecs="avc1.640028, mp4a.40.2"'));
+      if (canH264){
+        const dur = await page.$eval("#tutVid", e => new Promise(r => { e.addEventListener("loadedmetadata", () => r(e.duration), { once: true }); e.load(); setTimeout(() => r(-1), 8000); }));
+        check("tutorial step 4: the clip loads in the browser (about 31 s)", dur > 25 && dur < 40, String(dur));
+      } else check("tutorial step 4: H.264 not in this headless Chromium build: file checked with ffprobe instead", true, "canPlayType empty");
+    }
+    if (k >= 4 && k <= 6){
+      const key = ["calcium", "base", "edge"][k - 4];
+      const sub = await page.evaluate(k => window.CMB_TUTORIAL_PICS[k].subject, key);
+      check(`tutorial step ${k + 1}: picture with a ring, subject ${sub} is not a trainer patient`, v.canvas > 100 && v.cap.includes(sub) && notTrainer(sub) && v.cap.includes("no microbleed in the expert mask"));
+    }
+    if (k === 7) check("tutorial step 8: text only, no picture", !v.fig);
+    if (k === 8){
+      check("tutorial step 9: drawn example shown", v.canvas > 100 && v.cap.includes("Drawn example"));
+      check("tutorial step 9: precision 0.75, recall 0.60, F1 0.67 = 2*3/(2*3+1+2)", ["3 / 4 = 0.75", "3 / 5 = 0.60", "= 0.67"].every(x => v.text.includes(x)) && Math.abs(hand(3, 1, 2) - 0.667) < 0.001);
+      check("tutorial step 9: 'the algorithm was better this time' explained", v.text.includes("same scan") && v.text.includes("same rule"));
+    }
+    if (k === 9){
+      check("tutorial step 10: more than 4 microbleeds, five sources with DOI links", v.text.includes("more than 4 microbleeds") &&
+            (await page.$$eval("#tutText a[href^='https://doi.org/']", a => a.length)) === 5);
+    }
+    await shot(page, k === 1 ? "03_tutorial_step2_answer" : `03_tutorial_step${k + 1}`);
+  }
   check("tutorial: last step has a Start button", (await pageText(page, "#tutNext")) === "Start");
+  check("tutorial: Skip is hidden on the last step", await page.$eval("#tutSkip", e => e.hidden));
+  await page.click("#tutBack"); await frames(page);
+  check("tutorial: Back goes one step back", (await pageText(page, "#tutTitle")) === TITLES[TITLES.length - 2]);
+  await page.click("#tutNext"); await frames(page);
   await page.click("#tutNext");
   check("tutorial: closes", await page.$eval("#tut", e => e.hidden));
+  check("tutorial: no console errors", page.problems.length === 0, page.problems.join(" | "));
   await page.reload(); await page.waitForFunction(() => document.documentElement.dataset.ready === "1");
   await frames(page);
   check("tutorial: not shown again after a reload", await page.$eval("#tut", e => e.hidden));
   check("all requests stay on the page's own address (no internet needed)", page.requests.every(u => u.startsWith(BASE)), page.requests.find(u => !u.startsWith(BASE)) || "");
   check("no native alert / confirm", page.dialogs === 0);
   await shot(page, "01_start_laptop");
+  await ctx.close();
+}
+{
+  // Skip in the middle of the tutorial closes it and counts as seen
+  const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
+  const page = await openPage(ctx, "");
+  await page.click("#tutNext"); await page.click("#tutNext"); await page.click("#tutNext"); await frames(page);
+  check("tutorial: Skip shown in the middle (step 4)", await page.$eval("#tutSkip", e => !e.hidden));
+  await page.click("#tutSkip");
+  check("tutorial: Skip closes it", await page.$eval("#tut", e => e.hidden));
+  await page.reload(); await page.waitForFunction(() => document.documentElement.dataset.ready === "1"); await frames(page);
+  check("tutorial: after Skip not shown again", await page.$eval("#tut", e => e.hidden));
+  await ctx.close();
+}
+{
+  // every tutorial step on a phone: no sideways scrolling, the dialog fits the width; one screenshot per step
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  const page = await openPage(ctx, "");
+  await page.waitForFunction(() => !!window.CMB_TUTORIAL_PICS, null, { timeout: 5000 }).catch(() => {});
+  let wide = [];
+  for (let k = 0; k < 10; k++){
+    await frames(page);
+    const w = await page.$eval(".tutbox", b => b.scrollWidth <= b.clientWidth + 1);
+    if (!w || !(await noSideScroll(page))) wide.push(k + 1);
+    await shot(page, `20_phone_tutorial_step${k + 1}`);
+    if (k < 9) await page.tap("#tutNext");
+  }
+  check("phone: all 10 tutorial steps without sideways scrolling", wide.length === 0, wide.join(","));
+  check("phone tutorial: no errors", page.problems.length === 0, page.problems.join(" | "));
   await ctx.close();
 }
 

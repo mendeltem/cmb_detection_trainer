@@ -191,6 +191,14 @@
   .tutbox{background:#141821;border:1px solid #2a2f3a;border-radius:14px;max-width:1100px;width:100%;max-height:100%;overflow:auto;
           padding:24px 28px;display:flex;gap:28px;flex-wrap:wrap;align-items:center}
   .tutbox canvas{width:min(420px,100%);border-radius:10px;background:#000}
+  .tutfig{margin:0;width:min(420px,100%);display:flex;flex-direction:column;gap:6px}
+  .tutfig canvas{width:100%}
+  .tutfig video{width:100%;border-radius:10px;background:#000;aspect-ratio:16/9}
+  .tutfig.wide{width:min(600px,100%)}
+  .tutcap{color:#8d929a;font-size:13px;line-height:1.4}
+  .tutcap a{color:inherit}
+  .tuttext .refs{color:#8d929a;font-size:13.5px;line-height:1.45}
+  .tuttext .refs a{color:inherit}
   .tuttext{flex:1;min-width:260px;font-size:19px;line-height:1.5;color:#ece9e1}
   .tutstep{color:#8d929a;font-size:15px;letter-spacing:.08em;text-transform:uppercase}
   .tuttext h2{margin:.2em 0 .4em;font-size:28px}
@@ -227,6 +235,10 @@
     .tuttext{font-size:16px}
     .tuttext h2{font-size:21px}
     .tutbox canvas{width:min(250px,70%);margin:0 auto}
+    .tutfig{width:100%;align-items:center}
+    .tutfig canvas{width:min(250px,70%)}
+    .tutfig video{width:100%}
+    .tutcap{text-align:center}
   }
   @media (max-width: 520px){
     .wrap{padding:0 8px}
@@ -435,7 +447,14 @@
 <!-- tutorial -->
 <div class="tut" id="tut" hidden role="dialog" aria-modal="true" aria-labelledby="tutTitle">
   <div class="tutbox">
-    <canvas id="tutCv"></canvas>
+    <figure class="tutfig" id="tutFig">
+      <canvas id="tutCv"></canvas>
+      <video id="tutVid" hidden controls preload="none" playsinline poster="data/vessel_clip.jpg"
+             aria-label="Clip: microbleed or vessel? Scroll through the slices (31 s, with voice)">
+        <source src="data/vessel_clip.mp4" type="video/mp4">
+      </video>
+      <figcaption class="tutcap" id="tutCap"></figcaption>
+    </figure>
     <div class="tuttext">
       <div class="tutstep" id="tutStep"></div>
       <h2 id="tutTitle"></h2><div id="tutText"></div>
@@ -1560,78 +1579,179 @@ $("pickTable").addEventListener("keydown", e => {
 });
 
 /* ==========================================================================
-   Tutorial: three short steps with one example slice of a subject that is
-   NOT a trainer patient (data/tutorial.js, loaded only when the tutorial opens)
+   Tutorial: ten short steps. Pictures only from VALDO subjects that are NOT
+   trainer patients: the example slice of sub-102 (data/tutorial.js), the
+   lookalikes of sub-109 and sub-201, which have no microbleed in the expert
+   mask (data/tutorial_pics.js), and the clip data/vessel_clip.mp4 (sub-102).
+   The two scripts load only when the tutorial opens; the clip only on play.
    ========================================================================== */
-const TUT_STEPS = [   // title, text, show the answer?
-  ["What to look for",
-   "<p>This is one slice of a T2*-weighted MRI. <b>Cerebral microbleeds</b> are small, round or oval, <b>very dark</b> spots, " +
-   "mostly 2 to 10 mm across, seen on only a few slices.</p><p>There is one on this slice. Can you find it?</p>", false],
-  ["The expert's answer",
-   "<p>The ring shows the microbleed the expert marked here.</p>" +
-   "<p><b>Do not mark lookalikes:</b></p><ul><li>vessels: dark too, but they go on over many slices or run as a line (scroll up and down before you click)</li>" +
-   "<li>calcifications in the basal ganglia, the choroid plexus or the pineal gland</li><li>air and bone at the skull base, dark edges of the brain</li></ul>", true],
-  ["How it works here",
-   "<p><b>Scroll</b> through all slices of a patient (wheel, arrow keys, slider, or one finger up and down) and <b>click</b> on every microbleed. " +
-   "Then press <b>Score</b>.</p>" +
-   "<p>You get <b>precision</b> (how many of your markers are right), <b>recall</b> (how many microbleeds you found) and their summary, the <b>F1</b> score, " +
-   "your hits, false alarms and misses on the picture, and the result of the algorithm (" + ALGO + ") on the same scan.</p>" +
-   "<p>Some patients have <b>no microbleed</b>: then the right answer is no marker. Go on with <b>Next patient</b>, as long as you like.</p>", false],
+const DOI = "https://doi.org/";
+const VALDO_CREDIT = 'VALDO 2021 Task 2, <a href="data/LICENSE.md">CC BY-NC-SA 4.0</a>, changes made';
+const TUT_STEPS = [   // title, text (string, or function of the example slice), what to show
+  { title: "What to look for", pic: "main",
+    html: "<p>This is one slice of a T2*-weighted MRI. <b>Cerebral microbleeds</b> are small, round or oval, <b>very dark</b> spots, " +
+          "mostly 2 to 10 mm across, seen on only a few slices.</p><p>There is one on this slice. Can you find it?</p>" },
+  { title: "The expert's answer", pic: "main-ring",
+    html: t => `<p>The ring shows the microbleed the expert marked here: about <b>${t ? t.diameterMm.toFixed(1) : "5"} mm</b> across, ` +
+               `seen on this slice only (the slices of this scan are 4 mm thick).</p>` +
+               "<p>Next: how big a microbleed is, and four lookalikes you should <b>not</b> mark.</p>" },
+  { title: "Size: what counts as one microbleed", pic: "size",
+    html: t => "<p>Round or oval, <b>very dark</b>, mostly <b>2 to 10 mm</b>, on <b>few slices</b>. Dark voxels that touch " +
+               "(in 3D, also corner to corner) are <b>one</b> microbleed.</p>" +
+               "<p>Size = diameter of a ball with the same volume. Classes: <b>&lt; 2 mm</b>, <b>2–5 mm</b>, <b>&gt; 5 mm</b>. " +
+               `This one: ${t ? t.diameterMm.toFixed(1) : "about 5"} mm${t ? ", class " + sizeClass(t.diameterMm) : ""}.</p>` +
+               "<p><b>Tiny ones are missed most:</b> faint, often on one slice only, close to the noise. " +
+               "The algorithm here found 4 of 10 under 2 mm, but 79 of 121 at 2–5 mm.</p>" },
+  { title: "Lookalike 1 of 4: a vessel", pic: "video",
+    html: "<p>Cut across, a vessel is a dark dot too. <b>Scroll</b>: a microbleed is gone after a few slices; " +
+          "a vessel goes on, and it moves or runs as a line.</p><p>Watch the clip (31 s, with voice; press play).</p>" },
+  { title: "Lookalike 2 of 4: calcium", pic: "calcium",
+    html: "<p>Calcium is dark on T2* too. Typical places: the <b>choroid plexus</b> in the ventricles (ring), the <b>pineal gland</b> " +
+          "in the midline, the <b>basal ganglia</b>. Often irregular, often on both sides.</p>" +
+          "<p>A dark spot in these places is most likely calcium (a CT would prove it): do not mark it.</p>" },
+  { title: "Lookalike 3 of 4: air and bone", pic: "base",
+    html: "<p>Near the sinuses, the ear canals and the skull base, air and bone disturb the signal: the brain there shows " +
+          "<b>dark smears and spots</b> (ring).</p><p>Do not mark dark spots inside such an area.</p>" },
+  { title: "Lookalike 4 of 4: a dark edge", pic: "edge",
+    html: "<p>At the border of the brain, the cut edge and vessels on the surface leave <b>dark dots and lines</b> (ring).</p>" +
+          "<p>Before you mark a dot at the edge, scroll: is it a round spot inside the brain, on few slices?</p>" },
+  { title: "How it works here", pic: null,
+    html: "<p><b>Scroll</b> through all slices of a patient (wheel, arrow keys, slider, or one finger up and down) and <b>click</b> on every microbleed. " +
+          "Then press <b>Score</b>.</p>" +
+          "<p>You get <b>precision</b> (how many of your markers are right), <b>recall</b> (how many microbleeds you found) and their summary, the <b>F1</b> score, " +
+          "your hits, false alarms and misses on the picture, and the result of the algorithm (" + ALGO + ") on the same scan.</p>" +
+          "<p>Some patients have <b>no microbleed</b>: then the right answer is no marker. Go on with <b>Next patient</b>, as long as you like.</p>" },
+  { title: "Reading your score", pic: "score",
+    html: "<p>The expert marked <b>5</b> microbleeds. You click <b>4</b> times; <b>3</b> are right.</p>" +
+          "<ul><li><b>Precision</b> = right / your clicks = 3 / 4 = 0.75</li><li><b>Recall</b> = right / expert's = 3 / 5 = 0.60</li>" +
+          "<li><b>F1</b> = 2 × 3 / (2 × 3 + 1 false alarm + 2 missed) = 0.67</li></ul>" +
+          "<p>A click is right if it is within 2 mm of the microbleed, on its slice or one close by. A second click on it is not counted.</p>" +
+          "<p><b>“The algorithm was better this time”</b>: its marks on the <b>same scan</b>, counted by the <b>same rule</b>, gave a higher F1 " +
+          "(equal F1: fewer false alarms wins).</p>" },
+  { title: "Why the count matters", pic: null,
+    html: "<p>Antibodies against amyloid (lecanemab, donanemab) can slow early Alzheimer's disease, but can cause brain swelling and new bleeds. " +
+          "The appropriate-use recommendations <b>exclude patients with more than 4 microbleeds</b> on the MRI before treatment: " +
+          "one dot can decide about a therapy.</p>" +
+          "<p><b>Where</b> they lie matters too: strictly <b>lobar</b> (cortex and the white matter below) points to cerebral amyloid angiopathy, " +
+          "<b>deep</b> (basal ganglia, thalamus) more to high blood pressure. Raters sort them by region, e.g. with the MARS scale.</p>" +
+          '<p class="refs">Cummings et al. 2023, lecanemab AUR, J Prev Alzheimers Dis 10:362–377, <a href="' + DOI + '10.14283/jpad.2023.30" target="_blank" rel="noopener">doi</a> · ' +
+          'Rabinovici et al. 2025, donanemab AUR, J Prev Alzheimers Dis 12:100150, <a href="' + DOI + '10.1016/j.tjpad.2025.100150" target="_blank" rel="noopener">doi</a> · ' +
+          'Charidimou et al. 2022, Boston criteria 2.0, Lancet Neurol, <a href="' + DOI + '10.1016/S1474-4422(22)00208-3" target="_blank" rel="noopener">doi</a> · ' +
+          'Vernooij et al. 2008, Rotterdam Scan Study, Neurology, <a href="' + DOI + '10.1212/01.wnl.0000307750.41970.d9" target="_blank" rel="noopener">doi</a> · ' +
+          'Gregoire et al. 2009, MARS, Neurology 73:1759–1766, <a href="' + DOI + '10.1212/WNL.0b013e3181c34a7d" target="_blank" rel="noopener">doi</a></p>' },
 ];
-let tutStep = 0, tutPicture = null, tutLoading = false;
-function drawTutorial(){
-  const t = window.CMB_TUTORIAL, can = $("tutCv");
-  if (!t || !tutPicture){ can.hidden = true; return; }
-  can.hidden = false;
-  const scale = 2;                                   // canvas pixels per voxel: a sharper ring
-  can.width = t.width * scale; can.height = t.height * scale;
-  can.style.aspectRatio = (t.width * t.voxelMm[0]) + " / " + (t.height * t.voxelMm[1]);
-  const cx = can.getContext("2d");
-  cx.imageSmoothingEnabled = true;
-  cx.drawImage(tutPicture, 0, 0, can.width, can.height);
-  if (TUT_STEPS[tutStep][2]){
-    const x = (t.cmb[0] + 0.5) * scale, y = (t.cmb[1] + 0.5) * scale, r = (t.diameterMm / 2 + 3) / t.voxelMm[0] * scale;
-    for (const [w, col] of [[7, "rgba(0,0,0,.8)"], [3.5, COL.found]]){
-      cx.lineWidth = w; cx.strokeStyle = col; cx.beginPath(); cx.arc(x, y, r, 0, 2 * Math.PI); cx.stroke();
-    }
+let tutStep = 0, tutPictures = {}, tutLoading = false;
+function sizeClass(d){ return d < 2 ? "< 2 mm" : d <= 5 ? "2–5 mm" : "> 5 mm"; }
+function tutRing(cx, x, y, r){
+  for (const [w, col] of [[7, "rgba(0,0,0,.8)"], [3.5, COL.found]]){
+    cx.lineWidth = w; cx.strokeStyle = col; cx.beginPath(); cx.arc(x, y, r, 0, 2 * Math.PI); cx.stroke();
   }
 }
+// the drawn example of "Reading your score": 5 microbleeds of the expert, 4 clicks, 3 right
+function drawScoreExample(can){
+  can.width = 840; can.height = 640; can.style.aspectRatio = "840 / 640";
+  const cx = can.getContext("2d");
+  cx.fillStyle = "#000"; cx.fillRect(0, 0, 840, 640);
+  cx.fillStyle = "#5d5f63"; cx.beginPath(); cx.ellipse(420, 280, 330, 250, 0, 0, 2 * Math.PI); cx.fill();
+  const bleeds = [[250, 170], [560, 150], [330, 330], [600, 360], [430, 450]];
+  for (const [x, y] of bleeds){ cx.fillStyle = "#111"; cx.beginPath(); cx.arc(x, y, 13, 0, 2 * Math.PI); cx.fill(); }
+  const ring = (x, y, col, dash) => { cx.setLineDash(dash || []); cx.lineWidth = 5; cx.strokeStyle = col; cx.beginPath(); cx.arc(x, y, 30, 0, 2 * Math.PI); cx.stroke(); cx.setLineDash([]); };
+  const cross = (x, y, col, k) => { cx.lineWidth = 4; cx.strokeStyle = col; cx.beginPath(); cx.moveTo(x - k, y - k); cx.lineTo(x + k, y + k); cx.moveTo(x + k, y - k); cx.lineTo(x - k, y + k); cx.stroke(); };
+  const plus = (x, y, col) => { cx.lineWidth = 4; cx.strokeStyle = col; cx.beginPath(); cx.moveTo(x - 9, y); cx.lineTo(x + 9, y); cx.moveTo(x, y - 9); cx.lineTo(x, y + 9); cx.stroke(); };
+  for (const i of [0, 2, 3]){ const [x, y] = bleeds[i]; ring(x, y, COL.found); plus(x + 6, y - 5, COL.found); }       // 3 found
+  for (const i of [1, 4]){ const [x, y] = bleeds[i]; cx.lineWidth = 5; cx.strokeStyle = COL.missed; cx.strokeRect(x - 28, y - 28, 56, 56); }   // 2 missed
+  ring(190, 360, COL.fp); cross(190, 360, COL.fp, 12);                                                                     // 1 false alarm
+  cx.font = "bold 30px system-ui, sans-serif"; cx.textBaseline = "middle";
+  const legend = [[COL.found, "found 3"], [COL.fp, "false alarm 1"], [COL.missed, "missed 2"]];
+  legend.forEach(([col, txt], k) => { cx.fillStyle = col; cx.fillText(txt, 40 + k * 265, 595); });
+}
+function drawTutorial(){
+  const step = TUT_STEPS[tutStep], can = $("tutCv"), vid = $("tutVid"), cap = $("tutCap"), fig = $("tutFig");
+  vid.hidden = step.pic !== "video";
+  if (step.pic !== "video" && !vid.paused) vid.pause();
+  can.hidden = true; cap.innerHTML = ""; fig.hidden = !step.pic; fig.classList.toggle("wide", step.pic === "video");
+  if (!step.pic) return;
+  if (step.pic === "video"){
+    cap.innerHTML = "Clip: VALDO sub-102 (not a trainer patient), 7 slices of 4 mm. " + VALDO_CREDIT + " (cut-outs, grey window, animation, voice).";
+    return;
+  }
+  if (step.pic === "score"){ can.hidden = false; drawScoreExample(can); cap.textContent = "Drawn example, not a real scan."; return; }
+  const main = step.pic === "main" || step.pic === "main-ring" || step.pic === "size";
+  const t = main ? window.CMB_TUTORIAL : (window.CMB_TUTORIAL_PICS || {})[step.pic];
+  const img = tutPictures[main ? "main" : step.pic];
+  if (!t || !img){ fig.hidden = !tutLoading; return; }        // not loaded (yet): text only
+  can.hidden = false;
+  const cx = can.getContext("2d");
+  if (step.pic === "size"){                                    // zoom: 24 mm around the microbleed, ring and a 5 mm bar
+    const half = 12 / t.voxelMm[0], sx = t.cmb[0] + 0.5 - half, sy = t.cmb[1] + 0.5 - half, px = 600 / (2 * half);
+    can.width = 600; can.height = 600; can.style.aspectRatio = "1 / 1";
+    cx.imageSmoothingEnabled = true;
+    cx.fillStyle = "#000"; cx.fillRect(0, 0, 600, 600);
+    cx.drawImage(img, sx, sy, 2 * half, 2 * half, 0, 0, 600, 600);
+    tutRing(cx, 300, 300, (t.diameterMm / 2 + 1.5) / t.voxelMm[0] * px);
+    const bar = 5 / t.voxelMm[0] * px;
+    cx.fillStyle = "rgba(0,0,0,.7)"; cx.fillRect(24, 528, bar + 24, 52);
+    cx.fillStyle = "#fff"; cx.fillRect(36, 560, bar, 8);
+    cx.font = "bold 26px system-ui, sans-serif"; cx.textBaseline = "alphabetic"; cx.fillText("5 mm", 36, 552);
+    cap.innerHTML = `Zoomed: 24 mm around the microbleed. VALDO ${t.subject} (not a trainer patient), slice ${t.slice} of ${t.nSlices}. ${VALDO_CREDIT}.`;
+    return;
+  }
+  const scale = step.pic === "main" || step.pic === "main-ring" ? 2 : Math.max(2, Math.round(420 / t.width));   // canvas pixels per voxel
+  can.width = t.width * scale; can.height = t.height * scale;
+  can.style.aspectRatio = (t.width * t.voxelMm[0]) + " / " + (t.height * t.voxelMm[1]);
+  cx.imageSmoothingEnabled = true;
+  cx.drawImage(img, 0, 0, can.width, can.height);
+  if (step.pic === "main-ring")
+    tutRing(cx, (t.cmb[0] + 0.5) * scale, (t.cmb[1] + 0.5) * scale, (t.diameterMm / 2 + 3) / t.voxelMm[0] * scale);
+  if (t.ring)
+    tutRing(cx, (t.ring[0] + 0.5) * scale, (t.ring[1] + 0.5) * scale, t.ring[2] / t.voxelMm[0] * scale);
+  cap.innerHTML = main
+    ? `VALDO ${t.subject} (not a trainer patient), slice ${t.slice} of ${t.nSlices}. ${VALDO_CREDIT}.`
+    : `Cut-out, ${t.label}: VALDO ${t.subject} (not a trainer patient; no microbleed in the expert mask), slice ${t.slice} of ${t.nSlices}. ${VALDO_CREDIT}.`;
+}
 function renderTutorial(){
-  const [title, html] = TUT_STEPS[tutStep];
+  const step = TUT_STEPS[tutStep];
   $("tutStep").textContent = `Tutorial, step ${tutStep + 1} of ${TUT_STEPS.length}`;
-  $("tutTitle").textContent = title;
-  $("tutText").innerHTML = html;
+  $("tutTitle").textContent = step.title;
+  $("tutText").innerHTML = typeof step.html === "function" ? step.html(window.CMB_TUTORIAL) : step.html;
   $("tutBack").disabled = tutStep === 0;
   $("tutNext").textContent = tutStep === TUT_STEPS.length - 1 ? "Start" : "Next";
   $("tutSkip").hidden = tutStep === TUT_STEPS.length - 1;
   drawTutorial();
+}
+function tutScript(src){
+  return new Promise(resolve => {
+    const el = document.createElement("script");
+    el.src = src; el.onload = () => resolve(true); el.onerror = () => { el.remove(); resolve(false); };
+    document.head.appendChild(el);
+  });
+}
+function tutImage(src){
+  return new Promise(resolve => { const img = new Image(); img.onload = () => resolve(img); img.onerror = () => resolve(null); img.src = src; });
+}
+async function loadTutorialPictures(){
+  tutLoading = true;
+  if (!window.CMB_TUTORIAL) await tutScript("data/tutorial.js");
+  if (window.CMB_TUTORIAL && !tutPictures.main){
+    tutPictures.main = await tutImage(window.CMB_TUTORIAL.png);
+    if (!$("tut").hidden) renderTutorial();                    // the texts use the size of the example microbleed
+  }
+  if (!window.CMB_TUTORIAL_PICS) await tutScript("data/tutorial_pics.js");
+  for (const [k, p] of Object.entries(window.CMB_TUTORIAL_PICS || {}))
+    if (!tutPictures[k]) tutPictures[k] = await tutImage(p.png);
+  tutLoading = false;
+  if (!$("tut").hidden) drawTutorial();
 }
 function openTutorial(){
   tutStep = 0;
   $("tut").hidden = false;
   renderTutorial();
   $("tutNext").focus();
-  if (tutPicture || tutLoading) return;
-  tutLoading = true;
-  const showPicture = () => {
-    const t = window.CMB_TUTORIAL;
-    if (!t){ tutLoading = false; return; }
-    const img = new Image();
-    img.onload = () => { tutPicture = img; tutLoading = false; if (!$("tut").hidden) drawTutorial(); };
-    img.onerror = () => { tutLoading = false; };
-    img.src = t.png;
-  };
-  if (window.CMB_TUTORIAL) showPicture();
-  else {
-    const el = document.createElement("script");
-    el.src = "data/tutorial.js";
-    el.onload = showPicture;
-    el.onerror = () => { tutLoading = false; el.remove(); };
-    document.head.appendChild(el);
-  }
+  if (!tutLoading && !(tutPictures.main && window.CMB_TUTORIAL_PICS)) loadTutorialPictures();
 }
 function closeTutorial(){
   $("tut").hidden = true;
+  if (!$("tutVid").paused) $("tutVid").pause();
   if (!state.tutorialSeen){ state.tutorialSeen = true; save(); }
 }
 $("tutBtn").addEventListener("click", openTutorial);

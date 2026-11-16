@@ -23,8 +23,8 @@ Sister page: the [WMH Rater Trainer](https://mendeltem.github.io/wmh_trainer/) (
 Open `index.html` in a browser. Nothing has to be installed and no internet is needed; the page also
 works when the folder is served as a static site (for example GitHub Pages).
 
-1. The page opens a random patient. A short tutorial (3 steps) is shown on the first visit; it can be
-   opened again with the **Tutorial** button. The longer **How to** panel is closed until you open it.
+1. The page opens a random patient. A short tutorial (10 steps) is shown on the first visit; it can be
+   opened again with the **Tutorial** button and skipped at any step. The longer **How to** panel is closed until you open it.
 2. Scroll through all slices (mouse wheel, arrow keys, the slider under the picture). Click on every
    microbleed: a ring marks it. Click the ring again to remove it. Markers on a slice close by are shown
    as a dashed ring, so you do not mark the same microbleed twice.
@@ -84,8 +84,8 @@ drag = move the picture.
 The 57 patients are the **cross-validation subjects** of VALDO 2021 Task 2 that the chain
 [cmb-valdo-chain](https://github.com/mendeltem/cmb-valdo-chain) used (the same 57 cases as the QC page
 https://mendeltem.github.io/valdo-cmb-qc/). The other 15 of the 72 public subjects are the chain's held-out
-cases; they have no out-of-fold prediction and are not used here (one of them, `sub-102`, gives the
-tutorial picture, so the tutorial gives away no answer of a trainer patient). Subjects with 0 microbleeds
+cases; they have no out-of-fold prediction and are not used here (three of them give the tutorial pictures,
+so the tutorial gives away no answer of a trainer patient; see "Tutorial"). Subjects with 0 microbleeds
 are kept on purpose: a trainer needs negatives.
 
 | Site | Patients | with / without CMB | Microbleeds | Voxel (mm) | Slices | Data |
@@ -168,6 +168,34 @@ clusters, detections of an algorithm added. The same credit and licence are show
 not cover the data: everything derived from the scans (`data/`, `build/screenshots/`, the case tables and JSON files in `build/`)
 stays under CC BY-NC-SA 4.0 (`data/LICENSE.md`).
 
+## Tutorial
+
+Ten short steps; every picture is from a VALDO subject that is **not** a trainer patient (the page test checks this):
+
+1. **What to look for**: one slice of the held-out subject `sub-102` with one microbleed.
+2. **The expert's answer**: the same slice with the expert's ring (4.7 mm, on one slice of 4 mm).
+3. **Size: what counts as one microbleed**: zoom on that microbleed with a 5 mm bar; touching voxels (26 neighbours)
+   are one microbleed; the size classes as above; why tiny ones are missed most (the algorithm: 4 of 10 under 2 mm).
+4. **Lookalike 1 of 4: a vessel**: the clip "Microbleed or vessel? Scroll." (31 s, voice, 1.2 MB, loaded only on play,
+   `data/vessel_clip.mp4`). Made from `sub-102`: the expert's microbleed is seen on 1 of 7 slices (4 mm); a vessel in a
+   sulcus of the other hemisphere, followed automatically from slice to slice, on 4 of 7 slices (16 mm) and moving 4.4 mm.
+   The same animation as in the lecture of 18.11.2026, there on another scan.
+5. **Lookalike 2 of 4: calcium**: a dark spot in the choroid plexus (`sub-109`, slice 16).
+6. **Lookalike 3 of 4: air and bone**: signal loss above the sinuses and orbits (`sub-201`, slice 77).
+7. **Lookalike 4 of 4: a dark edge**: a dark dot on the edge of the brain (`sub-201`, slice 118).
+8. **How it works here**: scroll, click, Score.
+9. **Reading your score**: precision, recall and F1 on a drawn example (5 microbleeds, 4 clicks, 3 right: 0.75, 0.60,
+   0.67) and what "the algorithm was better this time" means (same scan, same rule).
+10. **Why the count matters**: more than 4 microbleeds exclude a patient from anti-amyloid antibody therapy in the
+    appropriate-use recommendations (Cummings et al. 2023, https://doi.org/10.14283/jpad.2023.30; Rabinovici et al. 2025,
+    https://doi.org/10.1016/j.tjpad.2025.100150); lobar versus deep location (Boston criteria 2.0, Charidimou et al. 2022,
+    https://doi.org/10.1016/S1474-4422(22)00208-3; Vernooij et al. 2008, https://doi.org/10.1212/01.wnl.0000307750.41970.d9;
+    MARS, Gregoire et al. 2009, https://doi.org/10.1212/WNL.0b013e3181c34a7d).
+
+`sub-109` and `sub-201` have no microbleed in the expert mask, so a lookalike shown there is not a missed microbleed of
+the expert. "Calcium" is the likely reading of a dark spot in the choroid plexus; without a CT it is not proven.
+The tutorial files load only when the tutorial opens, the clip only when it is played (`preload="none"`).
+
 ## Folder layout
 
 ```
@@ -176,10 +204,14 @@ data/cases.js                       index of the 57 patients (loaded at the star
 data/case_sub-XXX.js                microbleeds, algorithm detections, geometry of one patient (loaded when opened)
 data/img/sub-XXX/NNN.jpg            one picture per slice (NNN = slice - 1)
 data/tutorial.js                    one slice of the held-out subject sub-102, loaded only when the tutorial opens
+data/tutorial_pics.js               three lookalike cut-outs (sub-109, sub-201), loaded only when the tutorial opens
+data/vessel_clip.mp4, .jpg          the clip "Microbleed or vessel? Scroll." (sub-102) and its poster picture
 build/00_survey_cases.py            step 0: one table row per VALDO Task 2 subject, which ones are used
 build/01_prepare_cases.py           step 1: write the files in data/
 build/02_make_test_expectations.py  step 2: independent recount, right answers for the page test
 build/03_test_page.mjs              step 3: test of the page in a headless browser
+build/04_tutorial_pictures.py       step 4: the lookalike pictures of the tutorial (data/tutorial_pics.js)
+build/vessel_clip/                  the clip: 01_vessel_images.py (pictures, numbers), scene.py (Manim), 02_make_clip.py
 build/case_table.tsv                table from step 0
 build/cases_meta.json               crop box, grey window, fold and algorithm counts per patient (step 1)
 build/algorithm_check.tsv           click rule vs the chain's overlap count, per patient (step 2)
@@ -198,8 +230,13 @@ folder of this README:
 python build/00_survey_cases.py
 python build/01_prepare_cases.py
 python build/02_make_test_expectations.py
+python build/04_tutorial_pictures.py
 node   build/03_test_page.mjs
 ```
+
+The clip is made with `build/vessel_clip/01_vessel_images.py`, then `02_make_clip.py voice`, `render`, `assemble`.
+It needs Manim, the Kokoro voice (`af_heart`), ffmpeg, and two folders outside this repository: the film engine
+`manim_film` and the lecture scenes it copies the look from (paths at the top of `02_make_clip.py`).
 
 The Python scripts need `numpy`, `scipy`, `nibabel` and `pillow` (made with Python 3.11.16, nibabel 5.4.2,
 NumPy 2.4.6, SciPy 1.17.1, Pillow 12.3.0). They read the public VALDO Task 2 data
@@ -220,7 +257,7 @@ again in plain Python loops. All 57 patients agree voxel by voxel and detection 
 ## Test
 
 `build/03_test_page.mjs` serves the folder with a small local web server and drives the page in a headless
-Chromium (package `playwright`; places set with `PLAYWRIGHT_DIR` and `CHROMIUM_PATH`). Last run: **122 of 122
+Chromium (package `playwright`; places set with `PLAYWRIGHT_DIR` and `CHROMIUM_PATH`). Last run: **161 of 161
 checks passed** (Chromium 151, Playwright, Node 22.22.2; the lines are in `build/test_results.txt`). It checks:
 
 - for all 57 patients: number of microbleeds, size classes and slice tolerance in the page = Python; the
@@ -235,6 +272,10 @@ checks passed** (Chromium 151, Playwright, Node 22.22.2; the lines are in `build
   leaving with unscored markers, the random order without repeats and the new round, reset
 - damaged and foreign saves, blocked storage, a missing data file and missing slice pictures, the page
   opened from `file://`, all slice pictures of one patient per site
+- the tutorial: all 10 steps in order (title, picture or clip or text, the numbers in the texts), every picture's
+  subject is not a trainer patient (not in the index, no `data/case_<id>.js`), the clip exists, is under 8 MB, is served
+  as video/mp4, has its credit and is not loaded before it is played; Skip in the middle, Back, Start; on a phone all
+  10 steps without sideways scrolling
 - a phone (390 x 844, touch): tap marks, one finger scrolls the slices, two fingers zoom, the quick buttons,
   F1 and "Next patient" on the screen after scoring, no sideways scrolling; and 1000 x 700, 820 x 1180,
   844 x 390, 1920 x 1080

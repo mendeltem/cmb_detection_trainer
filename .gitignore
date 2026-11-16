@@ -1,2 +1,3 @@
 __pycache__/
 *.pyc
+build/vessel_clip/work/

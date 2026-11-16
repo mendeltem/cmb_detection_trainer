@@ -1,15 +1,54 @@
-Test of the CMB Detection Trainer, 2026-11-13T15:15:24.936Z
+Test of the CMB Detection Trainer, 2026-11-16T14:28:34.839Z
 Chromium 151.0.7922.34, Node v22.22.2
 
 PASS  first visit: page loads without console errors
 PASS  first visit: tutorial opens by itself
 PASS  tutorial: example picture shown
-PASS  tutorial: step 2 shows the expert's answer
+PASS  tutorial: the clip is not loaded before it is played (preload=none)
+PASS  tutorial: 10 steps  [Tutorial, step 1 of 10]
+PASS  tutorial: 4 pictures loaded (example slice + 3 lookalikes)  [sub-102, sub-109, sub-201, sub-201]
+PASS  tutorial: no picture subject is a trainer patient  [sub-102, sub-109, sub-201, sub-201]
+PASS  tutorial step 2: "The expert's answer"  [The expert's answer]
+PASS  tutorial step 2: picture with the expert's ring
+PASS  tutorial step 3: "Size: what counts as one microbleed"  [Size: what counts as one microbleed]
+PASS  tutorial step 3: zoomed picture of the example microbleed
+PASS  tutorial step 3: size classes and the example's size
+PASS  tutorial step 3: tiny ones missed most (4 of 10, 79 of 121 as in the README)
+PASS  tutorial step 4: "Lookalike 1 of 4: a vessel"  [Lookalike 1 of 4: a vessel]
+PASS  tutorial step 4: the clip is shown, the canvas hidden
+PASS  tutorial step 4: <video> refers to data/vessel_clip.mp4, controls, no autoplay
+PASS  tutorial step 4: data/vessel_clip.mp4 exists, under 8 MB  [1185079]
+PASS  tutorial step 4: the clip is served (200, video/mp4)  [200 video/mp4]
+PASS  tutorial step 4: poster picture served
+PASS  tutorial step 4: data credit under the clip (VALDO, CC BY-NC-SA 4.0, changes made)
+PASS  tutorial step 4: the clip loads in the browser (about 31 s)  [31.833333]
+PASS  tutorial step 5: "Lookalike 2 of 4: calcium"  [Lookalike 2 of 4: calcium]
+PASS  tutorial step 5: picture with a ring, subject sub-109 is not a trainer patient
+PASS  tutorial step 6: "Lookalike 3 of 4: air and bone"  [Lookalike 3 of 4: air and bone]
+PASS  tutorial step 6: picture with a ring, subject sub-201 is not a trainer patient
+PASS  tutorial step 7: "Lookalike 4 of 4: a dark edge"  [Lookalike 4 of 4: a dark edge]
+PASS  tutorial step 7: picture with a ring, subject sub-201 is not a trainer patient
+PASS  tutorial step 8: "How it works here"  [How it works here]
+PASS  tutorial step 8: text only, no picture
+PASS  tutorial step 9: "Reading your score"  [Reading your score]
+PASS  tutorial step 9: drawn example shown
+PASS  tutorial step 9: precision 0.75, recall 0.60, F1 0.67 = 2*3/(2*3+1+2)
+PASS  tutorial step 9: 'the algorithm was better this time' explained
+PASS  tutorial step 10: "Why the count matters"  [Why the count matters]
+PASS  tutorial step 10: more than 4 microbleeds, five sources with DOI links
 PASS  tutorial: last step has a Start button
+PASS  tutorial: Skip is hidden on the last step
+PASS  tutorial: Back goes one step back
 PASS  tutorial: closes
+PASS  tutorial: no console errors
 PASS  tutorial: not shown again after a reload
 PASS  all requests stay on the page's own address (no internet needed)
 PASS  no native alert / confirm
+PASS  tutorial: Skip shown in the middle (step 4)
+PASS  tutorial: Skip closes it
+PASS  tutorial: after Skip not shown again
+PASS  phone: all 10 tutorial steps without sideways scrolling
+PASS  phone tutorial: no errors
 PASS  index lists 57 patients  [57]
 PASS  every patient: number of microbleeds, size classes, slice tolerance = Python
 PASS  every patient: algorithm TP/FP/FN/duplicates/F1 and found per size class = Python
@@ -124,4 +163,4 @@ PASS  1920x1080: picture at least 220 px high and fits the window  [820]
 PASS  1920x1080: score = Python
 PASS  1920x1080: no errors
 
-122 of 122 checks passed
+161 of 161 checks passed
