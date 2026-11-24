@@ -134,6 +134,11 @@ grid is a hit) the counts are the same for every patient (`build/algorithm_check
   the slice on the screen first and then outwards. Lossless PNG would need about 180 MB for site 2 alone.
   The JPEG error was measured on six patients: mean 1.75 grey values (of 255) in the brain, 99th percentile 7;
   on the reference microbleed voxels mean 2.3, maximum 14. No resampling, no smoothing.
+- **Display**: the stored files keep one point per voxel. For the screen the page computes 3 x 3 smooth
+  points per voxel (cubic spline, in the browser, switch "Smooth picture", on by default). Marks and scores
+  use the voxel grid as before; with the switch off and zoomed in, every voxel is one square. Opened as a
+  file from a folder (not from a web address) the browser does not let the page read the picture files;
+  then the browser's own smoothing is used instead of the cubic spline.
 - Data in `data/`: 106.7 MB (6019 files); the 27 site-2 scans are 90 % of it (3–4 MB each, others 0.3–0.5 MB).
 
 ## Data, credit and licence
